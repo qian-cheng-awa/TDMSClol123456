@@ -1,5 +1,4 @@
-local None = false
-local whitelistsystem = false
+
 local Players = game:GetService("Players")
 if not isfile("TDM/DeltaUiEnabled") then
 	writefile("TDM/DeltaUiEnabled","true")
@@ -164,29 +163,6 @@ local function Esp(Toggle,Objective,FolderName,Text,TextColor,Size,Change,Func,S
 		end)
 	end
 end
-local userid = game:GetService("TextChatService").TextChannels.RBXGeneral
-
-
-
-if userid:FindFirstChild(game:GetService("Players").LocalPlayer.Name) then 
-	for i,v in ipairs(game:GetService("Players"):GetPlayers()) do
-		if v.Name == game:GetService("Players").LocalPlayer.Name then
-			if v ~= game:GetService("Players").LocalPlayer then
-				None = true
-				Player.kick(Player,"你妈死了")
-			else
-				if v.UserId ~= userid:FindFirstChild(game:GetService("Players").LocalPlayer.Name).UserId then
-					None = true
-					Player.kick(Player,"你妈死了")
-				end
-			end
-		end
-	end
-else
-	None = true
-	Player.kick(Player,"你妈死了")
-end
-
 
 local HttpService = game:GetService("HttpService")
 
@@ -416,41 +392,10 @@ task.spawn(function()
 		math.random(Random.new(RandomSeed+50):NextInteger(5,900),Random.new(RandomSeed+50):NextInteger(901,1145))
 	end
 end)
-local whiteurl = loadstring(game:HttpGet('https://raw.githubusercontent.com/qian-cheng-awa/pM9-cR5-oC4-dX8-mD8.rG5-cS5-kG3-vJ3-gU5-/refs/heads/main/kU4%3DgU0%7ChW7(zJ6%3DaG6-yH7%5BdG1%60cN6%24iV1%7EbA7%3E.lua'))()
-local inw = false
-if whiteurl[2] then
-	local id = Player.UserId
-	local stringa = "[];',./!@#$%^&*()_+-={}|:\<>?~`123450qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM6789"
-	local Random = Random.new(math.floor((tonumber(id)+#tostring(id))/2.5))
-	local str = ""
-	for i=1,Random:NextInteger(12,20) do
-		local c = Random:NextInteger(1,#stringa)
-		str = str..stringa:sub(c,c+1)
-	end
-	for i,v in pairs(whiteurl) do
-		if v == str and not None then
-			inw = true
-		end
-	end
-else
-	inw = false
-	Rayfield:Notify({
-		Title = "TDM",
-		Content = "白名单系统已关闭 等待开启",
-		Duration = 6.5,
-		Image = 4483362458,
-	})
-end
+
 local PlayerPing = Player:GetNetworkPing()
 
-if not inw or None then
-	Rayfield:Notify({
-		Title = "TDM",
-		Content = "你没有白名单！购买QQ：2796194021",
-		Duration = 6.5,
-		Image = 4483362458,
-	})
-elseif not None then
+if true then
 	local aaa = game:GetService("VirtualUser")
 	pcall(function()
 		game:GetService('Players').LocalPlayer.Idled:connect(function()
