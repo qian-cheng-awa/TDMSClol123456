@@ -3219,7 +3219,6 @@ if true then
 
 			if autojump and game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight") then
 				if game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight").Adornee == Player.Character then
-					Instance.new('ImageButton').MouseButton1Down
 					for i,v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.MainUI.SprintingButton.MouseButton1Down)) do
 						v:Fire()						
 					end
