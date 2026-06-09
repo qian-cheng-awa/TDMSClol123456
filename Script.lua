@@ -1,8 +1,4 @@
-
 local Players = game:GetService("Players")
-if not isfile("TDM/DeltaUiEnabled") then
-	writefile("TDM/DeltaUiEnabled","true")
-end
 
 if identifyexecutor() == "Delta" then
 	--getrenv().RunInDeltaUi = readfile("TDM/DeltaUiEnabled") == "true"
@@ -13,9 +9,7 @@ local GuiMain = game.CoreGui
 if gethui then
 	GuiMain = gethui()
 end
---[[if not Rayfield["_G"] then
-	Rayfield["_G"] = {}
-end]]
+
 local AlrLoaded = {}
 
 local function GetApi(Url)
@@ -163,7 +157,6 @@ local function Esp(Toggle,Objective,FolderName,Text,TextColor,Size,Change,Func,S
 		end)
 	end
 end
-
 local HttpService = game:GetService("HttpService")
 
 
@@ -382,19 +375,9 @@ function Load(name,folder)
 	if not success then return false end
 	return decoded
 end
-local EnabledAntiHook = true
-local RandomSeed = Random.new(Player.UserId+10):NextInteger(1,1000000)
-task.spawn(function()
-	while EnabledAntiHook do
-		task.wait()
-		local AntiHook = Random.new(math.random(1,RandomSeed)+RandomSeed/Random.new(RandomSeed):NextInteger(1,500))
-		local AntiHook2 = Random.new(math.floor(tick()))
-		math.random(Random.new(RandomSeed+50):NextInteger(5,900),Random.new(RandomSeed+50):NextInteger(901,1145))
-	end
-end)
 
 local PlayerPing = Player:GetNetworkPing()
-
+print("start")
 if true then
 	local aaa = game:GetService("VirtualUser")
 	pcall(function()
@@ -2525,7 +2508,7 @@ if true then
 				FakeLag = Value
 			end,
 		})
-		
+
 		local autojump = false
 		Tab:CreateToggle({
 			Name = "维罗妮卡自动跳跃",
@@ -2535,7 +2518,7 @@ if true then
 				autojump = Value
 			end
 		})
-		
+
 		local oldsk8
 		Tab:CreateToggle({
 			Name = "维罗妮卡不撞墙",
@@ -2553,7 +2536,7 @@ if true then
 			end
 		})
 
-		
+
 		local Sprinting = require(game:GetService("ReplicatedStorage").Systems.Character.Game.Sprinting)
 
 		Tab:CreateSection("体力")
@@ -3121,7 +3104,7 @@ if true then
 			StartDashInit = "3",
 			LoopDashInit = "3",
 		}
-		
+
 		local hitboxtable = {
 			Slash = 1,
 			MassInfection = 3,
@@ -3147,10 +3130,10 @@ if true then
 
 		local lastfakeposition
 		local oldposition
-		
+
 		local oldfireserverc;oldfireserverc = hookfunction(require(game:GetService("ReplicatedStorage").Modules.Network.Network).FireServerConnection,function(self,Name,RE,...)
 			local args = {...}
-			
+
 			if Name == "UseActorAbility" and hitboxtable[args[1]] then
 				if hitbox then
 					hookucf = true
@@ -3158,7 +3141,7 @@ if true then
 						local t = tick()
 						local b = hitboxtable[args[1]]
 						local c = tick()
-						
+
 						local a;a = game:GetService("RunService").RenderStepped:Connect(function(dt)
 							if tick() - t >= b then
 								if oldposition then
@@ -3191,14 +3174,14 @@ if true then
 								if not oldposition then
 									oldposition = Player.Character:GetPivot()
 								end
-							
+
 								local finalcf = CFrame.new(	nearst.PrimaryPart.Position + PlayerVelocityTable[Players:GetPlayerFromCharacter(nearst)] * (math.clamp(Player:GetNetworkPing(), 0, 100)+0.1))
-								
+
 								if autor then
 									finalcf = CFrame.new(finalcf.Position) * nearst.PrimaryPart.CFrame.Rotation
 								end
-								
-								
+
+
 								Player.Character:PivotTo(finalcf)
 								workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
 
@@ -3223,7 +3206,7 @@ if true then
 					return
 				end
 			end
-			
+
 			return oldfireserverc(self,Name,RE,...)
 		end)
 
@@ -3233,13 +3216,17 @@ if true then
 					require(game:GetService("ReplicatedStorage").Modules.Network.Network):FireServerConnection("UpdateCharacterPosition","UREMOTE_EVENT",require(game:GetService("ReplicatedStorage").Systems.Player.Game.CharacterReplication).Serialize(CFrame.new(0,-6000,0),Player.Character.PrimaryPart.AssemblyLinearVelocity))
 				end
 			end
-			
+
 			if autojump and game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight") then
 				if game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight").Adornee == Player.Character then
-					keypress(32)
-					task.delay(1,function()
-						keyrelease(32)
-					end)
+					Instance.new('ImageButton').MouseButton1Down
+					for i,v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.MainUI.SprintingButton.MouseButton1Down)) do
+						v:Fire()						
+					end
+
+					for i,v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.MainUI.SprintingButton.MouseButton1Up)) do
+						v:Fire()						
+					end
 				end
 			end
 
