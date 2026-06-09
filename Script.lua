@@ -3219,12 +3219,21 @@ if true then
 
 			if autojump and game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight") then
 				if game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight").Adornee == Player.Character then
-					for i,v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.MainUI.SprintingButton.MouseButton1Down)) do
-						v:Fire()						
-					end
+					if game:GetService("Players").ZJW9901:GetAttribute("Device") == "PC" then
+						keypress(32)
+						task.delay(1,function()
+							keyrelease(32)
+						end)
+					elseif game:GetService("Players").ZJW9901:GetAttribute("Device") == "Mobile" then
+						for i,v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.MainUI.SprintingButton.MouseButton1Down)) do
+							v.Function()						
+						end
 
-					for i,v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.MainUI.SprintingButton.MouseButton1Up)) do
-						v:Fire()						
+						task.delay(1,function()
+							for i,v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.MainUI.SprintingButton.MouseButton1Up)) do
+								v:Function()						
+							end
+						end)
 					end
 				end
 			end
