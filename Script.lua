@@ -1909,7 +1909,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Name = "主要功能",
 		Columns = 1,
 	})
-	local Groupbox = MainTab:CreateGroupbox({
+	local Groupbox = Tab:CreateGroupbox({
 		Name = "体力",
 		Column = 1,
 	})
