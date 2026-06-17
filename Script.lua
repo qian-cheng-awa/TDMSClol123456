@@ -1409,6 +1409,7 @@ local function aunpack(tbl,index)
 	return unpack(rv)
 end
 table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
+	local Camera = workspace.CurrentCamera
 	PlayerPing = Player:GetNetworkPing()
 	ScreenSize = workspace.CurrentCamera.ViewportSize
 	if mainaimbot and mainaimbotenabled then
