@@ -1827,9 +1827,11 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 
 	local oldaa;oldaa = hookfunction(getconnections(game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent").OnClientEvent)[1].Function,function(...)
 		local args = {...}
-		task.delay(.1,function()
-			PlayerStaminaManager.AddPlayer(args[2][1].Player)
-		end)
+		if args[1] == "ActorCreated" then
+			task.delay(.1,function()
+				PlayerStaminaManager.AddPlayer(args[2][1].Player)
+			end)
+		end
 		
 		return oldaa(...)
 	end)
