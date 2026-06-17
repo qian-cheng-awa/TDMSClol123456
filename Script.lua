@@ -2247,7 +2247,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Name = "",
 		Column = 1,
 	})
-
+	local pl
 	local pld = Groupbox:CreateDropdown({
 		Special = 1,
 		Name = "黑名单",
@@ -2255,10 +2255,12 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Required = false,
 		Placeholder = "None Selected",
 		Callback = function(Options)
-			fpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
+			pl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
-
+	
+	
+	
 	local hitbox = false
 	Groupbox:CreateToggle({
 		Name = "全图追踪碰撞箱(近战攻击生效)",
@@ -2531,7 +2533,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Required = false,
 		Placeholder = "None Selected",
 		Callback = function(Options)
-			fpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
+			pl1 = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
 
