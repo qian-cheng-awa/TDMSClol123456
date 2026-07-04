@@ -77,151 +77,49 @@ end
 if GuiMain:FindFirstChild("TDMEsp") then
 	GuiMain:FindFirstChild("TDMEsp"):Destroy()
 end
+
+local CurrentPosition
+
+local FlingRunning = false
+
 local function SkidFling(TargetPlayer)
-	local valuetable = {}
-
-	valuetable.Character = Player.Character
-	valuetable.Humanoid = valuetable.Character and valuetable.Character:FindFirstChildOfClass("Humanoid")
-	valuetable.RootPart = valuetable.Humanoid and valuetable.Humanoid.RootPart
-
-	valuetable.TCharacter = TargetPlayer.Character
-	valuetable.THumanoid = valuetable.TCharacter and valuetable.TCharacter:FindFirstChildOfClass("Humanoid")
-	valuetable.TRootPart = valuetable.THumanoid and valuetable.THumanoid.RootPart
-	valuetable.THead = valuetable.TCharacter and valuetable.TCharacter:FindFirstChild("Head")
-	valuetable.Accessory = valuetable.TCharacter and valuetable.TCharacter:FindFirstChildOfClass("Accessory")
-	valuetable.Handle = valuetable.Accessory and valuetable.Accessory:FindFirstChild("Handle")
-
-	if valuetable.Character and valuetable.Humanoid and valuetable.RootPart then
-		if valuetable.RootPart.Velocity.Magnitude < 50 then
-			getgenv().OldPos = valuetable.RootPart.CFrame
-		end
-		if valuetable.THumanoid and valuetable.THumanoid.Sit then
-			return Message("Error Occurred", "Target is sitting", 5)
-		end
-		if valuetable.THead then
-			workspace.CurrentCamera.CameraSubject = valuetable.THead
-		elseif valuetable.Handle then
-			workspace.CurrentCamera.CameraSubject = valuetable.Handle
-		else
-			workspace.CurrentCamera.CameraSubject = valuetable.THumanoid
-		end
-		if not valuetable.TCharacter:FindFirstChildWhichIsA("BasePart") then
-			return
-		end
-
-		local function FPos(BasePart, Pos, Ang)
-			valuetable.RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
-			valuetable.Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
-			valuetable.RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
-			valuetable.RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
-		end
-
-		local function SFBasePart(BasePart)
-			local TimeToWait = 2
-			local Time = tick()
-			local Angle = 0
-
-			repeat
-				if valuetable.RootPart and valuetable.THumanoid then
-					if BasePart.Velocity.Magnitude < 50 then
-						Angle = Angle + 100
-
-						FPos(BasePart, CFrame.new(0, 1.5, 0) + valuetable.THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle),0 ,0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, -1.5, 0) + valuetable.THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + valuetable.THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + valuetable.THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, 1.5, 0) + valuetable.THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, -1.5, 0) + valuetable.THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
-						task.wait()
-					else
-						FPos(BasePart, CFrame.new(0, 1.5, valuetable.THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, -1.5, -valuetable.THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, 1.5, valuetable.THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, 1.5, valuetable.TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, -1.5, -valuetable.TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, 1.5, valuetable.TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, -1.5 ,0), CFrame.Angles(math.rad(-90), 0, 0))
-						task.wait()
-
-						FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
-						task.wait()
-					end
-				else
-					break
-				end
-			until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= TargetPlayer.Character or TargetPlayer.Parent ~= Players or TargetPlayer.Character ~= valuetable.TCharacter or valuetable.THumanoid.Sit or valuetable.Humanoid.Health <= 0 or tick() > Time + TimeToWait
-		end
-		workspace.FallenPartsDestroyHeight = 0/0
-
-		local BV = Instance.new("BodyVelocity")
-		BV.Name = "EpixVel"
-		BV.Parent = valuetable.RootPart
-		BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
-		BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
-
-		valuetable.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-
-		if valuetable.TRootPart and valuetable.THead then
-			if (valuetable.TRootPart.CFrame.p - valuetable.THead.CFrame.p).Magnitude > 5 then
-				SFBasePart(valuetable.THead)
-			else
-				SFBasePart(valuetable.TRootPart)
-			end
-		elseif valuetable.TRootPart and not valuetable.THead then
-			SFBasePart(valuetable.TRootPart)
-		elseif not valuetable.TRootPart and valuetable.THead then
-			SFBasePart(valuetable.THead)
-		elseif not valuetable.TRootPart and not valuetable.THead and valuetable.Accessory and valuetable.Handle then
-			SFBasePart(valuetable.Handle)
-		end
-
-		BV:Destroy()
-		valuetable.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-		workspace.CurrentCamera.CameraSubject = valuetable.Humanoid
-
-		repeat
-			valuetable.RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
-			valuetable.Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
-			valuetable.Humanoid:ChangeState("GettingUp")
-			table.foreach(valuetable.Character:GetChildren(), function(_, x)
-				if x:IsA("BasePart") then
-					x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new()
-				end
-			end)
-			task.wait()
-		until (valuetable.RootPart.Position - getgenv().OldPos.p).Magnitude < 25
-		workspace.FallenPartsDestroyHeight = getgenv().FPDH
-	else
-		return Message("Error Occurred", "Random error", 5)
+	if FlingRunning then
+		return
 	end
+	
+	local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
+	if not HRP then return end
+	
+	local CurrentPosition = Player.Character.HumanoidRootPart.CFrame
+	
+	local TargetHRP = TargetPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if not TargetHRP then return end
+	
+	FlingRunning = true
+	
+	local conn = game:GetService('RunService').Heartbeat:Connect(function()
+		pcall(function()
+			sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
+			HRP.CFrame = TargetHRP.CFrame * CFrame.new(0, 1.3, 0) * CFrame.Angles(math.rad(0), 0, 0)
+			HRP.AssemblyLinearVelocity = Vector3.new(0, -9999, 0)
+		end)
+	end)
+	
+	task.delay(1,function()
+		conn:Disconnect()
+		
+		if HRP then
+			HRP.AssemblyLinearVelocity  = Vector3.zero
+			HRP.AssemblyAngularVelocity = Vector3.zero
+			HRP.CFrame = CurrentPosition
+		end
+		
+		HRP = nil
+		TargetHRP = nil
+		conn = nil
+		CurrentPosition = nil
+		FlingRunning = false
+	end)
 end
 local TDMRunId = game:GetService("HttpService"):GenerateGUID(true)
 local TeleportService = game:GetService("TeleportService")
@@ -1401,15 +1299,14 @@ end
 local function aunpack(tbl,index)
 	local max = #tbl
 	local rv = {}
-	
+
 	for i=0,index do
 		table.insert(rv,tbl[max-i])
 	end
-	
+
 	return unpack(rv)
 end
 table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
-	local Camera = workspace.CurrentCamera
 	PlayerPing = Player:GetNetworkPing()
 	ScreenSize = workspace.CurrentCamera.ViewportSize
 	if mainaimbot and mainaimbotenabled then
@@ -1467,16 +1364,16 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 			if not LastPositionTable[v] then
 				LastPositionTable[v] = v.Character:GetPivot().Position
 			end
-			
+
 			if not PlayerVelocityTable1[v] then
 				PlayerVelocityTable1[v] = {}
 			end
-			
+
 			local UpdateDealy = 10
-			
+
 			if #PlayerVelocityTable1[v] >= UpdateDealy then
 				local Max = #PlayerVelocityTable1[v]
-				
+
 				local N = (AddAll(aunpack(PlayerVelocityTable1[v],UpdateDealy-1)))/UpdateDealy
 				PlayerVelocityTable[v] = N
 			end
@@ -1686,7 +1583,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		local PlayerStaminaManager = {
 			Players = {}
 		}
-		
+
 		local function IsSprinting(Player)
 			if Player.Character and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid:FindFirstChild("Animator") and Actors.CurrentActors[Player] and Actors.CurrentActors[Player].Config.Animations and Actors.CurrentActors[Player].Config.Animations.Run then
 				for i,v:AnimationTrack in pairs(Player.Character.Humanoid.Animator:GetPlayingAnimationTracks()) do
@@ -1697,7 +1594,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 			end
 			return false
 		end
-		
+
 		local function Toggle(Player,Value)
 			if not Value then
 				if PlayerStaminaManager.Players[Player].timeUntilStaminaRecovers > 0.1 then
@@ -1709,9 +1606,9 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 				PlayerStaminaManager.Players[Player].timeUntilStaminaRecovers = 0.1
 			end
 		end
-		
+
 		PlayerStaminaManager.AddPlayer = function(Player)
-			
+
 			if not Actors.CurrentActors[Player] then
 				print("no actors")
 				local a = 0
@@ -1723,7 +1620,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 					return
 				end
 			end
-			
+
 			if not PlayerStaminaManager.Players[Player] then
 				PlayerStaminaManager.Players[Player] = {
 					timeUntilStaminaRecovers = 0,
@@ -1738,23 +1635,23 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 					StaminaCap = nil,
 				}
 			end
-			
+
 			Player.Character.Destroying:Connect(function()
 				PlayerStaminaManager.RemovePlayer(Player)
 			end)
 		end
-		
+
 		PlayerStaminaManager.RemovePlayer = function(Player)
 			PlayerStaminaManager.Players[Player] = nil
 		end
-		
+
 		table.insert(TDMConnections,Players.PlayerRemoving:Connect(function(Player)
 			PlayerStaminaManager.RemovePlayer(Player)
 		end))
-		
-		
+
+
 		local last = 0
-		
+
 		table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 			last = last + dt
 			for i,v in pairs(PlayerStaminaManager.Players) do
@@ -1763,9 +1660,9 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 				if NowIsSprinting ~= v.IsSprinting then
 					Toggle(i,NowIsSprinting)
 				end
-				
+
 				v.IsSprinting = NowIsSprinting
-				
+
 				if last >= 0.1 then
 					if i.Character.Parent.Name == "Killers" then
 						local v95 = Util:GetClosestPlayerFromPosition(i.Character:GetPivot().Position, {
@@ -1784,7 +1681,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 						end
 					end
 				end
-				
+
 				local sus,res = pcall(function()
 					if not i.Character.Parent then
 						PlayerStaminaManager.RemovePlayer(i)
@@ -1822,7 +1719,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 				last = 0
 			end
 		end))
-		
+
 		return PlayerStaminaManager
 	end)()
 
@@ -1833,14 +1730,14 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 				PlayerStaminaManager.AddPlayer(args[2][1].Player)
 			end)
 		end
-		
+
 		return oldaa(...)
 	end)
-	
+
 	for _,v in pairs(Players:GetPlayers()) do
 		PlayerStaminaManager.AddPlayer(v)
 	end
-	
+
 	PlayerEspFunc = function(v)
 		local tbl = {
 			Object = v.Character,
@@ -1856,9 +1753,9 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 				{
 					Text = function(Character)
 						local Pl = Players:GetPlayerFromCharacter(Character)
-						
+
 						local Ve = PlayerVelocityTable[Pl]
-						
+
 						if Ve then
 							return `速度 {math.floor(Ve.Magnitude)}`
 						else
@@ -1876,7 +1773,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 							return `{TBL.IsSprinting and "冲刺" or "非冲刺"}`
 						end
 					end,
-					
+
 					Color = Color3.new(1,1,1)
 				},
 				{
@@ -1895,7 +1792,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 								return Color3.new(1,0,0)
 							end
 						end
-						
+
 						return Color3.new(1,1,1)
 					end,
 				},
@@ -1910,7 +1807,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Name = "主要功能",
 		Columns = 1,
 	})
-	local Groupbox = Tab:CreateGroupbox({
+	local Groupbox = MainTab:CreateGroupbox({
 		Name = "体力",
 		Column = 1,
 	})
@@ -2032,7 +1929,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 	})
 
 	local ESP = {}
-	
+
 	local CheckFunctions = {
 		Items = function(Obj)
 			if Obj:FindFirstChild("ItemRoot") then
@@ -2052,7 +1949,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 			if Obj.Name == "Pizza" then
 				return true
 			end
-			
+
 			return false
 		end,
 		Taph = function(Obj)
@@ -2061,7 +1958,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 			elseif Obj.Name:find("TaphTripwire") then
 				return "TaphTripwire"
 			end
-			
+
 			return false
 		end,
 		Builder = function(Obj)
@@ -2070,11 +1967,11 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 			elseif Obj.Name == "BuildermanDispenser" then
 				return "BuildermanDispenser"
 			end
-			
+
 			return false
 		end,
 	}
-	
+
 	local EspFunctions = {
 		Items = function(v)
 			EspLib:WrapObject({
@@ -2083,7 +1980,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 				Color = Color3.new(0, 0.764706, 1),
 			})
 		end,
-		
+
 		Generator = function(v)
 			local tbl = {
 				Object = v,
@@ -2098,7 +1995,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 					}
 				}
 			}
-			
+
 			if Generator_CheckFunction(v) == "FakeGenerator" then
 				tbl = {
 					Object = v,
@@ -2114,10 +2011,10 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 					}
 				}	
 			end
-			
+
 			EspLib:WrapObject(tbl)
 		end,
-		
+
 		Pizza = function(v)
 			EspLib:WrapObject({
 				Object = v,
@@ -2125,14 +2022,14 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 				Color = Color3.new(0.556863, 1, 0.85098),
 			})
 		end,
-		
+
 		Taph = function(v)
 			local tbl = {
 				Object = v,
 				DisplayText = "子空间炸弹",
 				Color = Color3.new(0.666667, 0, 1),
 			}
-			
+
 			if CheckFunctions.Taph(v) == "TaphTripwire" then
 				tbl = {
 					Object = v,
@@ -2140,17 +2037,17 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 					Color = Color3.new(0.666667, 0, 1),
 				}
 			end
-			
+
 			EspLib:WrapObject(tbl)
 		end,
-		
+
 		Builder = function(v)
 			local tbl = {
 				Object = v,
 				DisplayText = "炮塔",
 				Color = Color3.new(1, 0.666667, 0),
 			}
-			
+
 			if CheckFunctions.Builder(v) == "BuildermanDispenser" then
 				tbl = {
 					Object = v,
@@ -2158,18 +2055,18 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 					Color = Color3.new(1, 0.666667, 0.219608),
 				}
 			end
-			
+
 			EspLib:WrapObject(tbl)
 		end,
 	}
-	
+
 	Groupbox:CreateToggle({
 		Name = "透视物品",
 		CurrentValue = false,
 		Flag = "Toggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
 		Callback = function(Value)
 			ESP.Items = Value
-			
+
 			Esp({workspace.Map.Ingame},CheckFunctions.Items,EspFunctions.Items,Value)
 		end,
 	})
@@ -2183,13 +2080,13 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		CurrentValue = false,
 		Callback = function(Value)
 			ESP.Generator = Value
-			
+
 			if workspace.Map.Ingame:FindFirstChild("Map") then
 				Esp({workspace.Map.Ingame.Map},CheckFunctions.Generator,EspFunctions.Generator,Value)
 			end
 		end,
 	})
-	
+
 	workspace.Map.Ingame.ChildAdded:Connect(function(v)
 		if v.Name == "Map" then
 			Esp({v},CheckFunctions.Generator,EspFunctions.Generator,ESP.Generator)
@@ -2198,21 +2095,21 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 			end)
 		end
 	end)
-	
+
 	Groupbox:CreateToggle({
 		Name = "透视披萨",
 		CurrentValue = false,
 		Callback = function(Value)
 			ESP.Pizza = Value
-			
+
 			Esp({workspace.Map.Ingame},CheckFunctions.Pizza,EspFunctions.Pizza,Value)
 		end,
 	})
-	
+
 	ESPManger({workspace.Map.Ingame},CheckFunctions.Pizza,EspFunctions.Pizza,function()
 		return ESP.Pizza
 	end)
-	
+
 	Groupbox:CreateToggle({
 		Name = "透视塔夫拌线/子空间地雷",
 		CurrentValue = false,
@@ -2221,11 +2118,11 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 			Esp({workspace.Map.Ingame},CheckFunctions.Taph,EspFunctions.Taph,Value)
 		end,
 	})
-	
+
 	ESPManger({workspace.Map.Ingame},CheckFunctions.Taph,EspFunctions.Taph,function()
 		return ESP.Taph
 	end)
-	
+
 	Groupbox:CreateToggle({
 		Name = "透视建造师炮塔/回血装置",
 		CurrentValue = false,
@@ -2234,7 +2131,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 			Esp({workspace.Map.Ingame},CheckFunctions.Builder,EspFunctions.Builder,Value)
 		end,
 	})
-	
+
 	ESPManger({workspace.Map.Ingame},CheckFunctions.Builder,EspFunctions.Builder,function()
 		return ESP.Builder
 	end)
@@ -2248,7 +2145,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Name = "",
 		Column = 1,
 	})
-	local pl
+
 	local pld = Groupbox:CreateDropdown({
 		Special = 1,
 		Name = "黑名单",
@@ -2256,12 +2153,10 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Required = false,
 		Placeholder = "None Selected",
 		Callback = function(Options)
-			pl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
+			fpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
-	
-	
-	
+
 	local hitbox = false
 	Groupbox:CreateToggle({
 		Name = "全图追踪碰撞箱(近战攻击生效)",
@@ -2534,7 +2429,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Required = false,
 		Placeholder = "None Selected",
 		Callback = function(Options)
-			pl1 = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
+			fpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
 
