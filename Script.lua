@@ -86,17 +86,17 @@ local function SkidFling(TargetPlayer)
 	if FlingRunning then
 		return
 	end
-	
+
 	local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
 	if not HRP then return end
-	
+
 	local CurrentPosition = Player.Character.HumanoidRootPart.CFrame
-	
+
 	local TargetHRP = TargetPlayer.Character:FindFirstChild("HumanoidRootPart")
 	if not TargetHRP then return end
-	
+
 	FlingRunning = true
-	
+
 	local conn = game:GetService('RunService').Heartbeat:Connect(function()
 		pcall(function()
 			sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
@@ -104,16 +104,16 @@ local function SkidFling(TargetPlayer)
 			HRP.AssemblyLinearVelocity = Vector3.new(0, -9999, 0)
 		end)
 	end)
-	
+
 	task.delay(1,function()
 		conn:Disconnect()
-		
+
 		if HRP then
 			HRP.AssemblyLinearVelocity  = Vector3.zero
 			HRP.AssemblyAngularVelocity = Vector3.zero
 			HRP.CFrame = CurrentPosition
 		end
-		
+
 		HRP = nil
 		TargetHRP = nil
 		conn = nil
@@ -1608,36 +1608,37 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		end
 
 		PlayerStaminaManager.AddPlayer = function(Player)
-
-			if not Actors.CurrentActors[Player] then
-				print("no actors")
-				local a = 0
-				repeat
-					a += RunService.RenderStepped:Wait()
-				until Actors.CurrentActors[Player] or a >= 5
-				task.wait(PlayerPing+1)
+			task.spawn(function()
 				if not Actors.CurrentActors[Player] then
-					return
+					print("no actors")
+					local a = 0
+					repeat
+						a += RunService.RenderStepped:Wait()
+					until Actors.CurrentActors[Player] or a >= 5
+					task.wait(PlayerPing+1)
+					if not Actors.CurrentActors[Player] then
+						return
+					end
 				end
-			end
 
-			if not PlayerStaminaManager.Players[Player] then
-				PlayerStaminaManager.Players[Player] = {
-					timeUntilStaminaRecovers = 0,
-					IsSprinting = false,
-					StaminaLossDisabled = false,
-					CanSprint = true,
-					MinStamina = Actors.CurrentActors[Player].Config.MinStamina or 0,
-					MaxStamina = Actors.CurrentActors[Player].Config.MaxStamina or 100,
-					Stamina = Actors.CurrentActors[Player].Config.MaxStamina or 100,
-					StaminaGain = Actors.CurrentActors[Player].Config.StaminaGain or 20,
-					StaminaLoss = Actors.CurrentActors[Player].Config.StaminaLoss or 10,
-					StaminaCap = nil,
-				}
-			end
+				if not PlayerStaminaManager.Players[Player] then
+					PlayerStaminaManager.Players[Player] = {
+						timeUntilStaminaRecovers = 0,
+						IsSprinting = false,
+						StaminaLossDisabled = false,
+						CanSprint = true,
+						MinStamina = Actors.CurrentActors[Player].Config.MinStamina or 0,
+						MaxStamina = Actors.CurrentActors[Player].Config.MaxStamina or 100,
+						Stamina = Actors.CurrentActors[Player].Config.MaxStamina or 100,
+						StaminaGain = Actors.CurrentActors[Player].Config.StaminaGain or 20,
+						StaminaLoss = Actors.CurrentActors[Player].Config.StaminaLoss or 10,
+						StaminaCap = nil,
+					}
+				end
 
-			Player.Character.Destroying:Connect(function()
-				PlayerStaminaManager.RemovePlayer(Player)
+				Player.Character.Destroying:Connect(function()
+					PlayerStaminaManager.RemovePlayer(Player)
+				end)
 			end)
 		end
 
@@ -1803,7 +1804,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 	end
 
 	local TabSection = Window:CreateTabSection(gameinfo.Name)
-	local Tab = TabSection:CreateTab({
+	local MainTab = TabSection:CreateTab({
 		Name = "主要功能",
 		Columns = 1,
 	})
@@ -2145,6 +2146,8 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Name = "",
 		Column = 1,
 	})
+	
+	local hitboxpl
 
 	local pld = Groupbox:CreateDropdown({
 		Special = 1,
@@ -2153,7 +2156,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Required = false,
 		Placeholder = "None Selected",
 		Callback = function(Options)
-			fpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
+			hitboxpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
 
@@ -2429,7 +2432,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Required = false,
 		Placeholder = "None Selected",
 		Callback = function(Options)
-			fpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
+			pl1 = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
 
@@ -2574,8 +2577,8 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 
 						local nearst
 
-						if pl then
-							nearst = pl.Character
+						if hitboxpl then
+							nearst = hitboxpl.Character
 						else
 							for i,v in ipairs(workspace.Players:FindFirstChild(Players.LocalPlayer.Character.Parent == workspace.Players.Killers and "Survivors" or Players.LocalPlayer.Character.Parent == workspace.Players.Survivors and "Killers"):GetChildren()) do
 								if Players:GetPlayerFromCharacter(v) and (not nearst or nearst and (v:IsA("Model") and v.Humanoid.Health ~= 0 and (v.PrimaryPart.Position - Players.LocalPlayer.Character.PrimaryPart.Position).Magnitude <= (nearst.PrimaryPart.Position - Players.LocalPlayer.Character.PrimaryPart.Position).Magnitude)) then
@@ -2583,10 +2586,8 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 								end
 							end
 						end
+						
 						if nearst then
-							local Actor = Actors.CurrentActors[Player]
-							local oldv = Players.LocalPlayer.Character.PrimaryPart.AssemblyLinearVelocity
-
 							hookucf = true
 							runned = true
 							if not oldposition then
@@ -2598,11 +2599,14 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 							if autor then
 								finalcf = CFrame.new(finalcf.Position) * nearst.PrimaryPart.CFrame.Rotation
 							end
+							
+							newcclosure(function()
+								sethiddenproperty(Player.Character.HumanoidRootPart, 'PhysicsRepRootPart', nearst.HumanoidRootPart)
+							end)
+							
+							Player.Character.HumanoidRootPart.CFrame = finalcf
 
-
-							Player.Character:PivotTo(finalcf)
 							workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
-
 						else
 							hookucf = false
 							runned = false
