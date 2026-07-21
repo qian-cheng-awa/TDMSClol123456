@@ -1,3 +1,4 @@
+
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
@@ -12,7 +13,17 @@ for i,v in pairs(Connects) do
 		Connects[i] = nil
 	end
 end
+local HookedFunction = TDMHookedFunction or {}
+getgenv().TDMHookedFunction = HookedFunction
+local oldhookfunction = hookfunction or function(...) return ... end
+for i,v in pairs(HookedFunction) do
+	oldhookfunction(i,v)
+end
 
+local hookfunction = newcclosure(function(Function, Hook)
+	HookedFunction[Function] = oldhookfunction(Function,Hook)
+	return HookedFunction[Function]
+end)
 
 local ScreenSize = workspace.CurrentCamera.ViewportSize
 local LastPositionTable, PlayerVelocityTable, PlayerVelocityTable1 = {}, {}, {}
@@ -34,7 +45,7 @@ local AlrLoaded1 = _G.LoadedUrlSTR or {}
 _G.LoadedUrlSTR = AlrLoaded1
 
 local function MatchPlaceId(...)
-	local Args = {}
+	local Args = {...}
 
 	for i,v in pairs(Args) do
 		if game.PlaceId ~= v then
@@ -426,7 +437,7 @@ if identifyexecutor() == "Delta" then
 end
 
 local Groupbox = MainTab:CreateGroupbox({
-	Name = "甩飞",
+	Name = "",
 	Column = 1,
 })
 
@@ -454,6 +465,16 @@ Groupbox:CreateButton({
 			end
 		end
 	end,
+})
+
+local tptotarget = false
+
+Groupbox:CreateToggle({
+	Name = "锁人",
+	CurrentValue = tptotarget,
+	Callback = function(Value)
+		tptotarget = Value
+	end    
 })
 
 local Groupbox = MainTab:CreateGroupbox({
@@ -1309,6 +1330,20 @@ end
 table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 	PlayerPing = Player:GetNetworkPing()
 	ScreenSize = workspace.CurrentCamera.ViewportSize
+	
+	if tptotarget and fpl and fpl.Character then
+		local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
+		if HRP then
+			local TargetHRP = fpl.Character:FindFirstChild("HumanoidRootPart")
+			if TargetHRP then
+				pcall(function()
+					sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
+					HRP.CFrame = TargetHRP.CFrame * CFrame.new(0, 0, 5) * CFrame.Angles(math.rad(0), 0, 0)
+				end)
+			end
+		end
+	end
+	
 	if mainaimbot and mainaimbotenabled then
 		local mouse = Players.LocalPlayer:GetMouse()
 		local mouseposition = Vector2.new(mouse.X,mouse.Y+58)
@@ -2146,7 +2181,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Name = "",
 		Column = 1,
 	})
-	
+
 	local hitboxpl
 
 	local pld = Groupbox:CreateDropdown({
@@ -2586,7 +2621,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 								end
 							end
 						end
-						
+
 						if nearst then
 							hookucf = true
 							runned = true
@@ -2599,11 +2634,11 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 							if autor then
 								finalcf = CFrame.new(finalcf.Position) * nearst.PrimaryPart.CFrame.Rotation
 							end
-							
+
 							newcclosure(function()
 								sethiddenproperty(Player.Character.HumanoidRootPart, 'PhysicsRepRootPart', nearst.HumanoidRootPart)
 							end)
-							
+
 							Player.Character.HumanoidRootPart.CFrame = finalcf
 
 							workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
@@ -3232,11 +3267,104 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		end,
 	})
 
-
-
 	table.insert(TDMConnections,RunService.RenderStepped:Connect(function()
 		if InfStamina then
 			require(game:GetService("ReplicatedStorage").Systems.Character.Game.Sprinting).Stamina = math.huge
 		end
 	end))
+elseif MatchPlaceId(6520999642) then
+	local BotPlay = false
+
+	local DTB = {}
+
+	local function TaskDelay(T,Callback)
+		local Runned = 0
+		local a;a = game:GetService("RunService").PreSimulation:Connect(function(dt)
+			Runned += dt
+			if Runned >= T then
+				Callback()
+				a:Disconnect()
+			end
+		end)
+	end
+
+	local function Refresh()
+		local s = game:GetService("Players").LocalPlayer.PlayerGui.Main.FNFMain.songPlay
+		local a = require(s)
+
+		local CreateNote
+		local CreateNote2
+
+		for _,v in pairs(debug.getupvalues(a.PlaySong)) do
+			if typeof(v) == "function" and debug.info(v,"n") == "CreateNote" then
+				CreateNote = v
+			elseif typeof(v) == "function" and debug.info(v,"n") == "CreateNote2" then
+				CreateNote2 = v
+			end
+		end
+
+		local KeyPress = getsenv(s).KeyPress
+		local KeyLift = getsenv(s).KeyLift
+		local Inputs = getsenv(game:GetService("Players").LocalPlayer.PlayerGui.Main.FNFMain.songPlay)._G.Settings.Inputs
+
+		local function InputArrow(args)
+			coroutine.wrap(function()
+				local ArrowNumber = args[1]
+				local Ln = args[3]
+				local InputK = {
+					KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
+					UserInputType = Enum.UserInputType.Keyboard,
+				}
+				TaskDelay(1.985,function()
+					KeyPress(InputK,false)
+
+					task.wait(Ln)
+
+					KeyLift(InputK,false)
+				end)
+			end)()
+		end
+
+		local old;old = hookfunction(CreateNote,function(...)
+			if BotPlay then
+				local args = {...}
+				InputArrow(args)
+			end
+			return old(...)
+		end)
+
+		local old2;old2 = hookfunction(CreateNote2,function(...)
+			if BotPlay then
+				local args = {...}
+				InputArrow(args)
+			end
+			return old2(...)
+		end)
+	end
+	local TabSection = Window:CreateTabSection("FNF")
+	local MainTab = TabSection:CreateTab({
+		Name = "主菜单",
+		Columns = 1,
+	})
+
+
+	local Tab = MainTab:CreateGroupbox({
+		Name = "自动游玩",
+		Column = 1,
+	})
+
+	Tab:CreateToggle({
+		Name = "开启",
+		CurrentValue = BotPlay,
+		Callback = function(Value)
+			BotPlay = Value
+		end    
+	})
+
+	Refresh()
+	Player.PlayerGui.ChildAdded:Connect(function(v)
+		if v.Name == "Main" then
+			Refresh()
+		end
+	end)
 end
