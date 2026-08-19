@@ -349,7 +349,7 @@ function Load(name,folder)
 	return decoded
 end
 
-local EspLib = GetApi("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/EspLib.luau")
+local EspLib = loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/EspLib.luau"))()
 
 local Starlight = loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/Starlight.luau"))()
 
@@ -375,10 +375,6 @@ if not sus then
 		IconImageAssetId = 109251559,
 		Name = "TDM",
 	}
-end
-
-for i,v in pairs(Starlight) do
-	print(i,v)
 end
 
 local Window = Starlight:CreateWindow({
@@ -3458,7 +3454,7 @@ elseif MatchPlaceId(116362330852395) then
 
 	function GunFire(FinalPosition)
 		local Tool = Player.Character:FindFirstChildOfClass("Tool")
-		if not Tool:FindFirstChild("Bullets") then return end
+		if not Tool or not Tool:FindFirstChild("Bullets") then return end
 
 		local Camera = workspace.CurrentCamera
 
@@ -3473,7 +3469,7 @@ elseif MatchPlaceId(116362330852395) then
 	end
 
 	local OldCharacterConnections = {}
-	
+
 	local ca = function(Character)
 		for i,v in pairs(OldCharacterConnections) do
 			v:Disconnect()
@@ -3487,7 +3483,7 @@ elseif MatchPlaceId(116362330852395) then
 			end
 		end))
 	end
-	
+
 	Player.CharacterAdded:Connect(ca)
 	ca(Player.Character)
 	local TabSection = Window:CreateTabSection("SubCargo")
@@ -3495,7 +3491,7 @@ elseif MatchPlaceId(116362330852395) then
 		Name = "主菜单",
 		Columns = 1,
 	})
-	
+
 	local Tab = MainTab:CreateGroupbox({
 		Name = "",
 		Column = 1,
@@ -3511,7 +3507,7 @@ elseif MatchPlaceId(116362330852395) then
 			end
 		end,
 	})
-	
+
 	Tab:CreateButton({
 		Name = "无限备弹",
 		Callback = function()
@@ -3519,20 +3515,21 @@ elseif MatchPlaceId(116362330852395) then
 			if a then
 				AddAmmo(a,1145141919810)
 			end
-			
+
 			local b = workspace:FindFirstChild("APSAmmoBox",true)
 			if b then
 				AddAmmo(b,1145141919810)
 			end
 		end,
 	})
-	
+
 	Tab:CreateButton({
 		Name = "无限子弹",
 		Callback = function()
 			AddCurrentAmmo(1145141919810)
 		end,
 	})
+	
 
 	Tab:CreateToggle({
 		Name = "无限氧气",
@@ -3545,4 +3542,152 @@ elseif MatchPlaceId(116362330852395) then
 			end
 		end
 	})
+	
+	local function ItemEsp(v)
+		if v:FindFirstChild("Price") then
+			EspLib:WrapObject({
+				Object = v,
+				DisplayText = v.Name,
+				Color = Color3.new(0,1,0),
+				Infos = {
+					{
+						Text = tostring(v.Price.Value/2),
+						Color = Color3.new(0.831373, 1, 0)
+					}	
+				},
+			})
+		else
+			EspLib:WrapObject({
+				Object = v,
+				DisplayText = v.Name,
+				Color = Color3.new(0,1,0),
+			})
+		end
+	end
+	
+	local function EnemiesEspFunction(v)
+		EspLib:WrapObject({
+			Object = v,
+			DisplayText = v.Name,
+			Color = {
+				Text = Color3.new(1,0,0),
+				Box = Color3.new(1,0,0),
+			},
+		})
+	end
+	
+	local itemesp = true
+	Tab:CreateToggle({
+		Name = "物品透视",
+		CurrentValue = itemesp,
+		Callback = function(Value)
+			itemesp = Value
+			
+			for i,v in pairs(workspace:QueryDescendants("Model:has(#HasPlayer)")) do
+				if IsItem(v) then
+					if Value then
+						ItemEsp(v)
+					else
+						EspLib:UnwrapObject(v)
+					end
+				end
+			end
+		end
+	})
+	
+	
+	
+	local EnemiesEsp = true
+	Tab:CreateToggle({
+		Name = "怪物透视",
+		CurrentValue = itemesp,
+		Callback = function(Value)
+			EnemiesEsp = Value
+			
+			for i,v in pairs(workspace:QueryDescendants("Model:has(#Humanoid)")) do
+				if  v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" then
+					if Value then
+						EnemiesEspFunction(v)
+					else
+						EspLib:UnwrapObject(v)
+					end
+				end
+			end
+		end
+	})
+	
+	local AutoShoot = true
+	Tab:CreateToggle({
+		Name = "自动射击怪物",
+		CurrentValue = AutoShoot,
+		Callback = function(Value)
+			AutoShoot = Value
+		end,
+	})
+	local Lighting = game:GetService("Lighting")
+	Tab:CreateToggle({
+		Name = "全亮",
+		CurrentValue = false,
+		Callback = function(Value)
+			if Connects["FB"] then
+				Connects["FB"]:Disconnect()
+				Connects["FB"] = nil
+			end
+			if Value then
+				Connects["FB"] = RunService.RenderStepped:Connect(function()
+					Lighting.Brightness = 2
+					Lighting.ClockTime = 14
+					Lighting.FogEnd = 100000
+					Lighting.GlobalShadows = false
+					Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+				end)
+			end
+		end,
+	})
+	
+	local lasto = tick()
+	
+	table.insert(Connects,RunService.RenderStepped:Connect(function()
+		if HeadInWaterChange and tick()-lasto >= 1 then
+			lasto = tick()
+			game:GetService("ReplicatedStorage"):WaitForChild("UseOxygen"):FireServer(100)
+		end
+		local Camera = workspace.CurrentCamera
+		if AutoShoot and Player.Character:FindFirstChildOfClass("Tool") and Player.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Bullets") then
+			for i,v in pairs(workspace:QueryDescendants("Model:has(#Humanoid)")) do
+				if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" and v.Humanoid.Health > 0 then
+					local p = RaycastParams.new()
+					p.FilterType = Enum.FilterType.Include
+					p.FilterDescendantsInstances = {workspace.THE_SUBMARINE}
+					
+					local r = workspace:Raycast(Camera.CFrame.Position,CFrame.new(Camera.CFrame.Position,v.HumanoidRootPart.Position).LookVector*1000)
+					if r and r.Instance then
+						if not r.Instance:IsDescendantOf(v) then
+							return
+						end
+					end
+					
+					GunFire(v.HumanoidRootPart)
+				end
+			end
+		end
+	end))
+	
+	table.insert(Connects,workspace.DescendantAdded:Connect(function(v)
+		if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" then
+			EnemiesEspFunction(v)
+			return
+		end
+		
+		if v.Name == "HasPlayer" and v.Parent:IsA("Model") then
+			if EspLib.Objects[v.Parent] then return end
+			ItemEsp(v)
+		end
+		if itemesp and IsItem(v) then
+			ItemEsp(v)
+		end
+	end))
+	
+	local AutoShoot = true
+	
 end
