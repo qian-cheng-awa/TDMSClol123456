@@ -3529,7 +3529,7 @@ elseif MatchPlaceId(116362330852395) then
 			AddCurrentAmmo(1145141919810)
 		end,
 	})
-	
+
 
 	Tab:CreateToggle({
 		Name = "无限氧气",
@@ -3542,7 +3542,7 @@ elseif MatchPlaceId(116362330852395) then
 			end
 		end
 	})
-	
+
 	local function ItemEsp(v)
 		if v:FindFirstChild("Price") then
 			EspLib:WrapObject({
@@ -3564,7 +3564,7 @@ elseif MatchPlaceId(116362330852395) then
 			})
 		end
 	end
-	
+
 	local function EnemiesEspFunction(v)
 		EspLib:WrapObject({
 			Object = v,
@@ -3575,14 +3575,14 @@ elseif MatchPlaceId(116362330852395) then
 			},
 		})
 	end
-	
+
 	local itemesp = true
 	Tab:CreateToggle({
 		Name = "物品透视",
 		CurrentValue = itemesp,
 		Callback = function(Value)
 			itemesp = Value
-			
+
 			for i,v in pairs(workspace:QueryDescendants("Model:has(#HasPlayer)")) do
 				if IsItem(v) then
 					if Value then
@@ -3594,16 +3594,16 @@ elseif MatchPlaceId(116362330852395) then
 			end
 		end
 	})
-	
-	
-	
+
+
+
 	local EnemiesEsp = true
 	Tab:CreateToggle({
 		Name = "怪物透视",
 		CurrentValue = itemesp,
 		Callback = function(Value)
 			EnemiesEsp = Value
-			
+
 			for i,v in pairs(workspace:QueryDescendants("Model:has(#Humanoid)")) do
 				if  v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" then
 					if Value then
@@ -3615,7 +3615,7 @@ elseif MatchPlaceId(116362330852395) then
 			end
 		end
 	})
-	
+
 	local AutoShoot = true
 	Tab:CreateToggle({
 		Name = "自动射击怪物",
@@ -3644,41 +3644,41 @@ elseif MatchPlaceId(116362330852395) then
 			end
 		end,
 	})
-	
+
 	local lasto = tick()
-	
+	local lastshoot = tick()
+
 	table.insert(Connects,RunService.RenderStepped:Connect(function()
 		if HeadInWaterChange and tick()-lasto >= 1 then
 			lasto = tick()
 			game:GetService("ReplicatedStorage"):WaitForChild("UseOxygen"):FireServer(100)
 		end
+		
 		local Camera = workspace.CurrentCamera
-		if AutoShoot and Player.Character:FindFirstChildOfClass("Tool") and Player.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Bullets") then
+		if AutoShoot and tick()-lastshoot >= .2 and Player.Character:FindFirstChildOfClass("Tool") and Player.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Bullets") then
 			for i,v in pairs(workspace:QueryDescendants("Model:has(#Humanoid)")) do
 				if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" and v.Humanoid.Health > 0 then
 					local p = RaycastParams.new()
-					p.FilterType = Enum.FilterType.Include
+					p.FilterType = Enum.RaycastFilterType.Include
 					p.FilterDescendantsInstances = {workspace.THE_SUBMARINE}
-					
-					local r = workspace:Raycast(Camera.CFrame.Position,CFrame.new(Camera.CFrame.Position,v.HumanoidRootPart.Position).LookVector*1000)
-					if r and r.Instance then
-						if not r.Instance:IsDescendantOf(v) then
-							return
-						end
-					end
-					
-					GunFire(v.HumanoidRootPart)
+
+					local r = workspace:Raycast(Camera.CFrame.Position,CFrame.new(Camera.CFrame.Position,v.HumanoidRootPart.Position).LookVector*1000,p)
+					if r and r.Instance then return end
+
+					GunFire(v.HumanoidRootPart.Position)
 				end
 			end
+			
+			lastshoot = tick()
 		end
 	end))
-	
+
 	table.insert(Connects,workspace.DescendantAdded:Connect(function(v)
 		if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" then
 			EnemiesEspFunction(v)
 			return
 		end
-		
+
 		if v.Name == "HasPlayer" and v.Parent:IsA("Model") then
 			if EspLib.Objects[v.Parent] then return end
 			ItemEsp(v)
@@ -3687,7 +3687,7 @@ elseif MatchPlaceId(116362330852395) then
 			ItemEsp(v)
 		end
 	end))
-	
+
 	local AutoShoot = true
-	
+
 end
