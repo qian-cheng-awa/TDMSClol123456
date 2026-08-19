@@ -477,6 +477,40 @@ Groupbox:CreateToggle({
 	end    
 })
 
+local Offset1,Offset2,Offset3 = 5,0,0
+Groupbox:CreateSlider({
+	Name = "前后偏移",
+	Range = {-50, 50},
+	CurrentValue = Offset1,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = .1,
+	Callback = function(Value)
+		Offset1 = Value
+	end    
+})
+Groupbox:CreateSlider({
+	Name = "左右偏移",
+	Range = {-50, 50},
+	CurrentValue = Offset2,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = .1,
+	Callback = function(Value)
+		Offset2 = Value
+	end,
+})
+Groupbox:CreateSlider({
+	Name = "旋转偏移",
+	Range = {-180, 180},
+	CurrentValue = Offset2,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = .1,
+	Callback = function(Value)
+		Offset3 = Value
+	end,
+})
+
+
+
 local Groupbox = MainTab:CreateGroupbox({
 	Name = "狙击",
 	Column = 1,
@@ -1330,7 +1364,7 @@ end
 table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 	PlayerPing = Player:GetNetworkPing()
 	ScreenSize = workspace.CurrentCamera.ViewportSize
-	
+
 	if tptotarget and fpl and fpl.Character then
 		local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
 		if HRP then
@@ -1338,12 +1372,12 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 			if TargetHRP then
 				pcall(function()
 					sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
-					HRP.CFrame = TargetHRP.CFrame * CFrame.new(0, 0, 5) * CFrame.Angles(math.rad(0), 0, 0)
+					HRP.CFrame = TargetHRP.CFrame * CFrame.new(Offset2, 0, Offset1) * CFrame.Angles(0, math.rad(Offset3), 0)
 				end)
 			end
 		end
 	end
-	
+
 	if mainaimbot and mainaimbotenabled then
 		local mouse = Players.LocalPlayer:GetMouse()
 		local mouseposition = Vector2.new(mouse.X,mouse.Y+58)
@@ -3367,4 +3401,148 @@ elseif MatchPlaceId(6520999642) then
 			Refresh()
 		end
 	end)
+elseif MatchPlaceId(116362330852395) then
+	local UpdateBulletsCount = game:GetService("ReplicatedStorage"):WaitForChild("UpdateBulletsCount")
+	local AddDataChips = game:GetService("ReplicatedStorage").AddDataChips
+	local GunRaycast = game:GetService("ReplicatedStorage").GunRaycast
+
+	local Players = game:GetService("Players")
+	local Player = Players.LocalPlayer
+
+	local HeadInWaterChange = false
+
+	function GetToolToBackpack(Tool)
+		game:GetService("ReplicatedStorage"):WaitForChild("GrabPart"):FireServer(
+			Tool,
+			1
+		)
+	end
+
+	function IsItem(Obj:Tool)
+		if (Obj:IsA("Tool") or Obj:IsA("Model")) and Obj:FindFirstChild("HasPlayer") then
+			return true
+		end
+	end
+
+	function IsInStore(Tool)
+		if not Tool:FindFirstChild("IsInStore") then
+			return false
+		end
+		return Tool.IsInStore.Value == 1
+	end
+
+	function UnInStore(Tool)
+		Tool.IsInStore.Value = 0
+	end
+
+	function AddAmmo(Tool,Count)
+		if Tool.Name == "9mmAmmoBox" then
+			UpdateBulletsCount:FireServer(true, true, Count or 20, Tool)
+		elseif Tool.Name == "APSAmmoBox" then
+			UpdateBulletsCount:FireServer(true, true, Count or 26, Tool, "APS")
+		end
+	end
+
+	function AddCurrentAmmo(Count)
+		local Tool = Player.Character:FindFirstChildOfClass("Tool")
+		if not Tool:FindFirstChild("Bullets") then return end
+
+		UpdateBulletsCount:FireServer(
+			false,
+			true,
+			Count,
+			Tool,
+			Tool.Name == "APS" and "APS" or nil
+		)
+	end
+
+	function GunFire(FinalPosition)
+		local Tool = Player.Character:FindFirstChildOfClass("Tool")
+		if not Tool:FindFirstChild("Bullets") then return end
+
+		local Camera = workspace.CurrentCamera
+
+		local FinalCFrame = CFrame.new(Camera.CFrame.Position, FinalPosition)
+
+		GunRaycast:FireServer(FinalCFrame.LookVector * 1000, FinalCFrame.Position + FinalCFrame.LookVector * 3)
+	end
+
+	function AddDataChip(Tool,Count)
+		if Tool.Name ~= "DataChip" then return end
+		AddDataChips:FireServer(Count, Tool)
+	end
+
+	local OldCharacterConnections = {}
+	
+	local ca = function(Character)
+		for i,v in pairs(OldCharacterConnections) do
+			v:Disconnect()
+			OldCharacterConnections[i] = nil
+		end
+
+		local HeadInWater = Character:WaitForChild("Variables"):WaitForChild("HeadInWater")
+		table.insert(OldCharacterConnections,HeadInWater.Changed:Connect(function()
+			if HeadInWaterChange and HeadInWater.Value == true then
+				HeadInWater.Value = false
+			end
+		end))
+	end
+	
+	Player.CharacterAdded:Connect(ca)
+	ca(Player.Character)
+	local TabSection = Window:CreateTabSection("SubCargo")
+	local MainTab = TabSection:CreateTab({
+		Name = "主菜单",
+		Columns = 1,
+	})
+	
+	local Tab = MainTab:CreateGroupbox({
+		Name = "",
+		Column = 1,
+	})
+
+	Tab:CreateButton({
+		Name = "强制拥有商店物品",
+		Callback = function()
+			for i,v in ipairs(workspace:GetDescendants()) do
+				if IsItem(v) and IsInStore(v) then
+					UnInStore(v)
+				end
+			end
+		end,
+	})
+	
+	Tab:CreateButton({
+		Name = "无限备弹",
+		Callback = function()
+			local a = workspace:FindFirstChild("9mmAmmoBox",true)
+			if a then
+				AddAmmo(a,1145141919810)
+			end
+			
+			local b = workspace:FindFirstChild("APSAmmoBox",true)
+			if b then
+				AddAmmo(b,1145141919810)
+			end
+		end,
+	})
+	
+	Tab:CreateButton({
+		Name = "无限子弹",
+		Callback = function()
+			AddCurrentAmmo(1145141919810)
+		end,
+	})
+
+	Tab:CreateToggle({
+		Name = "无限氧气",
+		CurrentValue = HeadInWaterChange,
+		Callback = function(Value)
+			HeadInWaterChange = Value
+			if Value then
+				local HeadInWater = Player.Character:WaitForChild("Variables"):WaitForChild("HeadInWater")
+				HeadInWater.Value = false
+			end
+		end
+	})
 end
