@@ -3710,17 +3710,15 @@ elseif MatchPlaceId(13042495892) then
 			BotPlay = Value
 		end    
 	})
-	
+
 	local UIS = game:GetService("UserInputService")
 	local RunService = game:GetService("RunService")
+	local LP = game:GetService("Players").LocalPlayer
 	local VirtualInputManager = game:GetService("VirtualInputManager")
 
-	local Script = getsenv(Player.PlayerScripts.Client)
-	local API = Script.shared.getGlobals()
-
-	local hitNotes = {}
 	local keyStates = {}
-
+	local Script = getsenv(LP.PlayerScripts.Client)
+	local API = Script.shared.getGlobals()
 	local function getKeyForNote(note)
 		local strum = note.strum or (note.strumLine and note.strumLine.Strums and note.strumLine.Strums[note.noteData])
 		if strum and strum.dir then
@@ -3760,10 +3758,11 @@ elseif MatchPlaceId(13042495892) then
 		end
 		return false
 	end
+	
+	local Hit = Script.goodHit
 
 	table.insert(Connects,RunService.Stepped:Connect(function()
 		if not BotPlay then return end
-
 		local notes = API.Notes
 		local conductor = API.Conductor
 		if not notes or not conductor then return end
@@ -3778,7 +3777,7 @@ elseif MatchPlaceId(13042495892) then
 
 			local timeLeft = note.strumTime - now
 
-			if timeLeft <= 22 and timeLeft >= -hitWindow then
+			if timeLeft <= 25 and timeLeft >= -hitWindow then
 				local key = getKeyForNote(note)
 
 				if note.sustainNote and note.isEnd then
@@ -3793,7 +3792,7 @@ elseif MatchPlaceId(13042495892) then
 						pressKey(key)
 					end
 				else
-					Script.goodHit(note)
+					Hit(note)
 				end
 			end
 		end
