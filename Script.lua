@@ -3646,30 +3646,31 @@ elseif MatchPlaceId(116362330852395) then
 	})
 
 	local lasto = tick()
-	local lastshoot = tick()
 
 	table.insert(Connects,RunService.RenderStepped:Connect(function()
 		if HeadInWaterChange and tick()-lasto >= 1 then
 			lasto = tick()
 			game:GetService("ReplicatedStorage"):WaitForChild("UseOxygen"):FireServer(100)
 		end
-		
+
 		local Camera = workspace.CurrentCamera
-		if AutoShoot and tick()-lastshoot >= .2 and Player.Character:FindFirstChildOfClass("Tool") and Player.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Bullets") then
+		if AutoShoot and Player.Character:FindFirstChildOfClass("Tool") and Player.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Bullets") then
 			for i,v in pairs(workspace:QueryDescendants("Model:has(#Humanoid)")) do
 				if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" and v.Humanoid.Health > 0 then
 					local p = RaycastParams.new()
 					p.FilterType = Enum.RaycastFilterType.Include
 					p.FilterDescendantsInstances = {workspace.THE_SUBMARINE}
 
-					local r = workspace:Raycast(Camera.CFrame.Position,CFrame.new(Camera.CFrame.Position,v.HumanoidRootPart.Position).LookVector*1000,p)
-					if r and r.Instance then return end
+					local r = workspace:Raycast(Camera.CFrame.Position,CFrame.new(Camera.CFrame.Position,v.HumanoidRootPart.Position).LookVector*1000)
+					if r and r.Instance then
+						if not r.Instance:IsDescendantOf(v) then
+							return
+						end
+					end
 
 					GunFire(v.HumanoidRootPart.Position)
 				end
 			end
-			
-			lastshoot = tick()
 		end
 	end))
 
@@ -3689,5 +3690,112 @@ elseif MatchPlaceId(116362330852395) then
 	end))
 
 	local AutoShoot = true
+elseif MatchPlaceId(13042495892) then
+	local BotPlay = false
+	local TabSection = Window:CreateTabSection("FNF")
+	local MainTab = TabSection:CreateTab({
+		Name = "午夜之后",
+		Columns = 1,
+	})
 
+	local Tab = MainTab:CreateGroupbox({
+		Name = "自动游玩",
+		Column = 1,
+	})
+
+	Tab:CreateToggle({
+		Name = "开启",
+		CurrentValue = BotPlay,
+		Callback = function(Value)
+			BotPlay = Value
+		end    
+	})
+	
+	local UIS = game:GetService("UserInputService")
+	local RunService = game:GetService("RunService")
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+
+	local Script = getsenv(Player.PlayerScripts.Client)
+	local API = Script.shared.getGlobals()
+
+	local hitNotes = {}
+	local keyStates = {}
+
+	local function getKeyForNote(note)
+		local strum = note.strum or (note.strumLine and note.strumLine.Strums and note.strumLine.Strums[note.noteData])
+		if strum and strum.dir then
+			local keybinds = API.Keybinds
+			if keybinds then
+				local key = keybinds[strum.dir]
+				if type(key) == "table" then
+					return key[1]
+				end
+				return key
+			end
+		end
+		return nil
+	end
+
+	local function getEnumKey(keyName)
+		if not keyName then return nil end
+		return Enum.KeyCode[keyName] or Enum.KeyCode:FromName(keyName)
+	end
+
+	local function pressKey(keyName)
+		local key = getEnumKey(keyName)
+		if key and not keyStates[keyName] then
+			keyStates[keyName] = true
+			VirtualInputManager:SendKeyEvent(true,key,false,game)
+			return true
+		end
+		return false
+	end
+
+	local function releaseKey(keyName)
+		local key = getEnumKey(keyName)
+		if key and keyStates[keyName] then
+			keyStates[keyName] = false
+			VirtualInputManager:SendKeyEvent(false,key,false,game)
+			return true
+		end
+		return false
+	end
+
+	table.insert(Connects,RunService.Stepped:Connect(function()
+		if not BotPlay then return end
+
+		local notes = API.Notes
+		local conductor = API.Conductor
+		if not notes or not conductor then return end
+
+		local now = conductor.SongPosition
+		local hitWindow = 166
+
+		for _, note in ipairs(notes) do
+			if not note or not note.alive then continue end
+			if note.hit or note.missed then continue end
+			if not note.mustPress or note.side ~= API.Side then continue end
+
+			local timeLeft = note.strumTime - now
+
+			if timeLeft <= 22 and timeLeft >= -hitWindow then
+				local key = getKeyForNote(note)
+
+				if note.sustainNote and note.isEnd then
+					if key then
+						releaseKey(key)
+					end
+				elseif not note.sustainNote and note.sustains and #note.sustains > 0 then
+					if key then
+						if keyStates[key] then
+							releaseKey(key)
+						end
+						pressKey(key)
+					end
+				else
+					Script.goodHit(note)
+				end
+			end
+		end
+	end))
 end
