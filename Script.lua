@@ -44,6 +44,7 @@ end
 
 local ScreenSize = workspace.CurrentCamera.ViewportSize
 
+
 if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
 	local sc = require(RF.Client)
 	if sc.GetModule then
@@ -56,11 +57,12 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 
 	local remote = RS:FindFirstChild("HAX")
 	local IsA = game.IsA
+	local GetFullName = game.GetFullName
 	if remote then
 		print("hook")
 		local old;old = hookmetamethod(game,"__namecall",newcclosure(function(r,...)
 			local namecallmethod = string.lower(getnamecallmethod())
-			if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then warn("hooked banned") else
+			if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then warn("hooked banned : "..getcallingscript():GetFullName()) else
 				return old(r,...)
 			end
 		end))
@@ -200,9 +202,41 @@ local function SkidFling(TargetPlayer)
 	end)
 end
 
+local Noclipping
+local NoclipParts = {}
+local Clip = true
+
+function NoClip()
+	pcall(function() Noclipping:Disconnect() end)
+	Clip = false
+	task.wait(0.1)
+	NoclipParts = {}
+	Noclipping = RunService.Stepped:Connect(function()
+		if Clip == false and Player.Character ~= nil then
+			for _, child in pairs(Player.Character:GetDescendants()) do
+				if child:IsA("BasePart") and child.CanCollide then
+					child.CanCollide = false
+					NoclipParts[child] = true
+				end
+			end
+		end
+	end)
+end
+
+function UnNoClip()
+	pcall(function() Noclipping:Disconnect() end)
+	Clip = true
+	task.wait(0.1)
+	for child, _ in pairs(NoclipParts) do
+		if typeof(child) == "Instance" and child:IsA("BasePart") and child.Parent then
+			child.CanCollide = true
+		end
+	end
+	NoclipParts = {}
+end
+
 
 iyflyspeed = 5
-vehicleflyspeed = 1
 local flyKeyDown,flyKeyUp
 local IYMouse = cloneref(Player:GetMouse())
 IsOnMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, UserInputService:GetPlatform())
@@ -261,13 +295,13 @@ function sFLY(vfly)
 	end
 	flyKeyDown = IYMouse.KeyDown:Connect(function(KEY)
 		if KEY:lower() == 'w' then
-			CONTROL.F = (vfly and vehicleflyspeed or iyflyspeed)
+			CONTROL.F = iyflyspeed
 		elseif KEY:lower() == 's' then
-			CONTROL.B = - (vfly and vehicleflyspeed or iyflyspeed)
+			CONTROL.B = - iyflyspeed
 		elseif KEY:lower() == 'a' then
-			CONTROL.L = - (vfly and vehicleflyspeed or iyflyspeed)
+			CONTROL.L = - iyflyspeed
 		elseif KEY:lower() == 'd' then 
-			CONTROL.R = (vfly and vehicleflyspeed or iyflyspeed)
+			CONTROL.R = iyflyspeed
 		end
 		pcall(function() workspace.CurrentCamera.CameraType = Enum.CameraType.Track end)
 	end)
@@ -367,16 +401,16 @@ local mobilefly = function(speaker, vfly)
 
 			local direction = controlModule:GetMoveVector()
 			if direction.X > 0 then
-				VelocityHandler.Velocity = VelocityHandler.Velocity + camera.CFrame.RightVector * (direction.X * ((vfly and vehicleflyspeed or iyflyspeed) * 50))
+				VelocityHandler.Velocity = VelocityHandler.Velocity + camera.CFrame.RightVector * (direction.X * (iyflyspeed * 50))
 			end
 			if direction.X < 0 then
-				VelocityHandler.Velocity = VelocityHandler.Velocity + camera.CFrame.RightVector * (direction.X * ((vfly and vehicleflyspeed or iyflyspeed) * 50))
+				VelocityHandler.Velocity = VelocityHandler.Velocity + camera.CFrame.RightVector * (direction.X * (iyflyspeed * 50))
 			end
 			if direction.Z > 0 then
-				VelocityHandler.Velocity = VelocityHandler.Velocity - camera.CFrame.LookVector * (direction.Z * ((vfly and vehicleflyspeed or iyflyspeed) * 50))
+				VelocityHandler.Velocity = VelocityHandler.Velocity - camera.CFrame.LookVector * (direction.Z * (iyflyspeed * 50))
 			end
 			if direction.Z < 0 then
-				VelocityHandler.Velocity = VelocityHandler.Velocity - camera.CFrame.LookVector * (direction.Z * ((vfly and vehicleflyspeed or iyflyspeed) * 50))
+				VelocityHandler.Velocity = VelocityHandler.Velocity - camera.CFrame.LookVector * (direction.Z * (iyflyspeed * 50))
 			end
 		end
 	end)
@@ -968,16 +1002,35 @@ Groupbox:CreateToggle({
 })
 
 local Groupbox = MainTab:CreateGroupbox({
+	Name = "穿墙",
+	Column = 1,
+})
+
+Groupbox:CreateToggle({
+	Name = "启用",
+	CurrentValue = false,
+	Callback = function(Value)
+		if Value then
+			NoClip()
+		else
+			UnNoClip()
+		end
+	end    
+})
+
+local Groupbox = MainTab:CreateGroupbox({
 	Name = "飞行",
 	Column = 1,
 })
+
+local vfly = false
 
 Groupbox:CreateToggle({
 	Name = "IY飞行",
 	CurrentValue = false,
 	Callback = function(Value)
 		if Value then
-			mobilefly(Player)
+			mobilefly(Player,vfly)
 		else
 			unmobilefly(Player)
 		end
@@ -988,16 +1041,23 @@ Groupbox:CreateToggle({
 	CurrentValue = false,
 	Callback = function(Value)
 		if Value then
-			sFLY(false)
+			sFLY(vfly)
 		else
 			NOFLY()
 		end
 	end    
 })
+Groupbox:CreateToggle({
+	Name = "载具模式（先开这个再开飞行）",
+	CurrentValue = vfly,
+	Callback = function(Value)
+		vfly = Value
+	end    
+})
 Groupbox:CreateSlider({
 	Name = "飞行速度",
 	Range = {0, 100},
-	CurrentValue = 1,
+	CurrentValue = iyflyspeed,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = 1,
 	Callback = function(Value)
