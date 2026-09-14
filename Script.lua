@@ -2210,6 +2210,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	OreEsp = false
 	EnemyEsp = false
 	
+	local EspFilter = {
+		Tree = {},
+		Ore = {},
+		Enemy = {}
+	}
+	
 	Tab:CreateToggle({
 		Name = "树木",
 		CurrentValue = TreeEsp,
@@ -2227,6 +2233,30 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			end
 		end    
+	})
+	
+	local StringOptions = {
+		Trees = {},
+		Ores = {},
+		Enemies = {"普通","可抓捕"},
+	}
+	
+	for i,v in workspace.World.TreeRegions:GetChildren() do
+		table.insert(StringOptions.Trees,v.Name)
+	end
+	for i,v in workspace.World.RockRegions:GetChildren() do
+		table.insert(StringOptions.Ores,v.Name)
+	end
+	
+	Tab:CreateDropdown({
+		Name = "过滤",
+		Options = StringOptions.Trees,
+		CurrentOption = StringOptions.Trees,
+		MultipleOptions = true,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			EspFilter.Tree = Options
+		end,
 	})
 	
 	Tab:CreateToggle({
@@ -2247,7 +2277,17 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end,
 	})
-	
+	Tab:CreateDropdown({
+		Name = "过滤",
+		Options = StringOptions.Ores,
+		CurrentOption = StringOptions.Ores,
+		MultipleOptions = true,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			EspFilter.Ore = Options
+		end,
+	})
+
 	Tab:CreateToggle({
 		Name = "生物",
 		CurrentValue = EnemyEsp,
@@ -2260,9 +2300,21 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end,
 	})
+	Tab:CreateDropdown({
+		Name = "过滤",
+		Options = StringOptions.Enemies,
+		CurrentOption = StringOptions.Enemies,
+		MultipleOptions = true,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			EspFilter.Enemy = Options
+		end,
+	})
+
 	
 	local Cache = {}
 	local Translator:Translator
+	
 	
 	local function OakEsp(v,Color,Text,translate)
 		Text = Text or v.Name
@@ -2351,7 +2403,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				if v:FindFirstChild("Tree") then
 					for _,v in v:GetChildren() do
 						if v.Name == "Tree" then
-							OakEsp(v,Color3.new(1, 0.584314, 0),Name)
+							local Name2 = v:GetAttribute("AltName")
+							if table.find(EspFilter.Tree,Name) then
+								OakEsp(v,Color3.new(1, 0.584314, 0),Name2,true)
+							else
+								EspLib:UnwrapObject(v)
+							end
 						end
 					end
 				end
@@ -2364,9 +2421,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				if v:FindFirstChild("") then
 					for _,v in v:GetChildren() do
 						if v.Name == "" then
-							OakEsp(v,Color3.new(0.478431, 0.478431, 0.478431),Name)
+							local Name2 = v:GetAttribute("AltName")
+							if table.find(EspFilter.Ore,Name) then
+								OakEsp(v,Color3.new(0.478431, 0.478431, 0.478431),Name2,true)
+							else
+								EspLib:UnwrapObject(v)
+							end
 						end
-						
 					end
 				end
 			end
@@ -2374,7 +2435,17 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		
 		if EnemyEsp then
 			for i,v in workspace.World.Enemies:GetChildren() do
-				OakEsp(v,v:GetAttribute("RequiresWeapon") and Color3.new(0.435294, 1, 0) or Color3.new(1,0,0))
+				if v:GetAttribute("RequiresWeapon") then
+					if table.find(EspFilter.Enemy,"可抓捕") then
+						OakEsp(v,Color3.new(0.435294, 1, 0))
+					else
+						EspLib:UnwrapObject(v)
+					end
+				elseif table.find(EspFilter.Enemy,"普通") then
+					OakEsp(v,Color3.new(1,0,0))
+				else
+					EspLib:UnwrapObject(v)
+				end
 			end
 		end
 	end))
