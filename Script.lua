@@ -53,7 +53,7 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 			end
 		end)
 	end
-	
+
 	local remote = RS:FindFirstChild("HAX")
 	local IsA = game.IsA
 	if remote then
@@ -74,11 +74,11 @@ local isnetworkowner = function(Part)
 	if Part:IsA("Model") then
 		Part = Part.PrimaryPart
 	end
-	
+
 	if not Part then
 		return false
 	end
-	
+
 	return not Part:IsGrounded() and Part.AssemblyRootPart.ReceiveAge == 0
 end
 
@@ -2205,17 +2205,17 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Name = "透视",
 		Column = 1,
 	})
-	
+
 	TreeEsp = false
 	OreEsp = false
 	EnemyEsp = false
-	
+
 	local EspFilter = {
 		Tree = {},
 		Ore = {},
 		Enemy = {}
 	}
-	
+
 	Tab:CreateToggle({
 		Name = "树木",
 		CurrentValue = TreeEsp,
@@ -2234,22 +2234,23 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end    
 	})
-	
+
 	local StringOptions = {
 		Trees = {},
 		Ores = {},
 		Enemies = {"普通","可抓捕"},
 	}
-	
+
 	for i,v in workspace.World.TreeRegions:GetChildren() do
 		table.insert(StringOptions.Trees,v.Name)
 	end
 	for i,v in workspace.World.RockRegions:GetChildren() do
 		table.insert(StringOptions.Ores,v.Name)
 	end
-	
+
 	Tab:CreateDropdown({
 		Name = "过滤",
+		Special = 3,
 		Options = StringOptions.Trees,
 		CurrentOption = StringOptions.Trees,
 		MultipleOptions = true,
@@ -2258,7 +2259,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			EspFilter.Tree = Options
 		end,
 	})
-	
+
 	Tab:CreateToggle({
 		Name = "矿物",
 		CurrentValue = OreEsp,
@@ -2280,6 +2281,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	Tab:CreateDropdown({
 		Name = "过滤",
 		Options = StringOptions.Ores,
+		Special = 3,
 		CurrentOption = StringOptions.Ores,
 		MultipleOptions = true,
 		Placeholder = "None Selected",
@@ -2311,14 +2313,14 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		end,
 	})
 
-	
+
 	local Cache = {}
 	local Translator:Translator
-	
-	
+
+
 	local function OakEsp(v,Color,Text,translate)
 		Text = Text or v.Name
-		
+
 		if translate then
 			if not Translator then
 				Translator = LocalizationService:GetTranslatorForPlayer(Player)
@@ -2328,24 +2330,24 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				local sourceTranslation = Translator:Translate(game, Text)
 				Cache[Text] = sourceTranslation
 			end
-			
+
 			Text = Cache[Text]
 		end
-	
+
 		EspLib:WrapObject({
 			Object = v,
 			DisplayText = Text,
 			Color = Color or Color3.new(1,1,1),
 		})
 	end
-	
+
 	local Tab = MainTab:CreateGroupbox({
 		Name = "运输",
 		Column = 1,
 	})
-	
+
 	local TPItem = false
-	
+
 	Tab:CreateToggle({
 		Name = "运输物品到储物柜（用吸枪，储物柜命名为物品名字或Here）",
 		CurrentValue = TPItem,
@@ -2353,7 +2355,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			TPItem = Value
 		end,
 	})
-	
+
 	local tpfpl 
 	Tab:CreateDropdown({
 		Special = 1,
@@ -2367,7 +2369,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			tpfpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
-	
+
 	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
 		if TPItem and tpfpl.Character then
 			for i,v in workspace.World.LooseItems:GetChildren() do
@@ -2376,7 +2378,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 					if v:IsA("Model") then
 						p = v.PrimaryPart
 					end
-					
+
 					local filter = workspace.World.Structures:QueryDescendants(`#1x1StorageDrawer[$Text = {v.Name}]:has(#Owner)`)
 					if #filter == 0 then
 						filter = workspace.World.Structures:QueryDescendants(`#1x1StorageDrawer[$Text = Here]:has(#Owner)`)
@@ -2396,7 +2398,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			end
 		end
-		
+
 		if TreeEsp then
 			for i,v in workspace.World.TreeRegions:GetChildren() do
 				local Name = v.Name
@@ -2414,7 +2416,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			end
 		end
-		
+
 		if OreEsp then
 			for i,v in workspace.World.RockRegions:GetChildren() do
 				local Name = v.Name
@@ -2432,7 +2434,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			end
 		end
-		
+
 		if EnemyEsp then
 			for i,v in workspace.World.Enemies:GetChildren() do
 				if v:GetAttribute("RequiresWeapon") then
