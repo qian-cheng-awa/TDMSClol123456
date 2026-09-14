@@ -2215,6 +2215,17 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		CurrentValue = TreeEsp,
 		Callback = function(Value)
 			TreeEsp = Value
+			if not Value then
+				for i,v in workspace.World.TreeRegions:GetChildren() do
+					if v:FindFirstChild("Tree") then
+						for _,v in v:GetChildren() do
+							if v.Name == "Tree" then
+								EspLib:UnwrapObject(v)
+							end
+						end
+					end
+				end
+			end
 		end    
 	})
 	
@@ -2223,6 +2234,17 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		CurrentValue = OreEsp,
 		Callback = function(Value)
 			OreEsp = Value
+			if not Value then
+				for i,v in workspace.World.RockRegions:GetChildren() do
+					if v:FindFirstChild("") then
+						for _,v in v:GetChildren() do
+							if v.Name == "" then
+								EspLib:UnwrapObject(v)
+							end
+						end
+					end
+				end
+			end
 		end,
 	})
 	
@@ -2231,6 +2253,11 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		CurrentValue = EnemyEsp,
 		Callback = function(Value)
 			EnemyEsp = Value
+			if not Value then
+				for i,v in workspace.World.Enemies:GetChildren() do
+					EspLib:UnwrapObject(v)
+				end
+			end
 		end,
 	})
 	
