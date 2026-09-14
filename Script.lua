@@ -2,47 +2,91 @@
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
-local isnetworkowner = function(Part)
-	return not Part:IsGrounded() and Part.AssemblyRootPart.ReceiveAge == 0
-end
-local Connects = TDMConnections or {}
-getgenv().TDMConnections = Connects
-for i,v in pairs(Connects) do
-	if typeof(v) == "RBXScriptConnection" then
-		v:Disconnect()
-		Connects[i] = nil
-	end
-end
-local HookedFunction = TDMHookedFunction or {}
-getgenv().TDMHookedFunction = HookedFunction
-local oldhookfunction = hookfunction or function(...) return ... end
-for i,v in pairs(HookedFunction) do
-	oldhookfunction(i,v)
-end
 
-local hookfunction = newcclosure(function(Function, Hook)
-	HookedFunction[Function] = oldhookfunction(Function,Hook)
-	return HookedFunction[Function]
-end)
 
-local ScreenSize = workspace.CurrentCamera.ViewportSize
-local LastPositionTable, PlayerVelocityTable, PlayerVelocityTable1 = {}, {}, {}
+local RS = game:GetService("ReplicatedStorage")
+local RF = game:GetService("ReplicatedFirst")
+local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalizationService = game:GetService("LocalizationService")
+local Lighting = game:GetService("Lighting")
+local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+
+local TDMRunId = HttpService:GenerateGUID(true)
+
+local AlrLoaded = LoadedUrl or {}
+getgenv().LoadedUrl = AlrLoaded
+local AlrLoaded1 = LoadedUrlSTR or {}
+getgenv().LoadedUrlSTR = AlrLoaded1
+
 local Player = Players.LocalPlayer
 local PlayerPing = Player:GetNetworkPing()
-local RunService = game:GetService("RunService")
+
 local GuiMain = Player.PlayerGui
 if gethui then
 	GuiMain = gethui()
 elseif game.CoreGui then
 	GuiMain = game.CoreGui
 end
+
+if GuiMain:FindFirstChild("TDMEsp") then
+	GuiMain:FindFirstChild("TDMEsp"):Destroy()
+end
+
+local ScreenSize = workspace.CurrentCamera.ViewportSize
+
+if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
+	local sc = require(RF.Client)
+	if sc.GetModule then
+		hookfunction(getupvalue(sc.GetModule,1),function()
+			if checkcaller() then
+				warn("hooked while stack")
+			end
+		end)
+	end
+	
+	local remote = RS:FindFirstChild("HAX")
+	local IsA = game.IsA
+	if remote then
+		print("hook")
+		local old;old = hookmetamethod(game,"__namecall",newcclosure(function(r,...)
+			local namecallmethod = string.lower(getnamecallmethod())
+			if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then warn("hooked banned") else
+				return old(r,...)
+			end
+		end))
+	else
+		print("no event found")
+	end
+end
+
+
+local isnetworkowner = function(Part)
+	if Part:IsA("Model") then
+		Part = Part.PrimaryPart
+	end
+	
+	if not Part then
+		return false
+	end
+	
+	return not Part:IsGrounded() and Part.AssemblyRootPart.ReceiveAge == 0
+end
+
 local cloneref = cloneref or function(...) return ... end
-local AlrLoaded = _G.LoadedUrl or {}
-_G.LoadedUrl = AlrLoaded
-local AlrLoaded1 = _G.LoadedUrlSTR or {}
-_G.LoadedUrlSTR = AlrLoaded1
+
+local hookfunction = newcclosure(function(Function, Hook)
+	HookedFunction[Function] = oldhookfunction(Function,Hook)
+	return HookedFunction[Function]
+end)
+
+
 
 local function MatchPlaceId(...)
 	local Args = {...}
@@ -85,9 +129,24 @@ end
 local function GetRandomId()
 	return HttpService:GenerateGUID()
 end
-if GuiMain:FindFirstChild("TDMEsp") then
-	GuiMain:FindFirstChild("TDMEsp"):Destroy()
+
+
+local Connects = TDMConnections or {}
+getgenv().TDMConnections = Connects
+for i,v in pairs(Connects) do
+	if typeof(v) == "RBXScriptConnection" then
+		v:Disconnect()
+		Connects[i] = nil
+	end
 end
+local HookedFunction = TDMHookedFunction or {}
+getgenv().TDMHookedFunction = HookedFunction
+local oldhookfunction = hookfunction or function(...) return ... end
+for i,v in pairs(HookedFunction) do
+	oldhookfunction(i,v)
+end
+
+local LastPositionTable, PlayerVelocityTable, PlayerVelocityTable1 = {}, {}, {}
 
 local CurrentPosition
 
@@ -108,7 +167,7 @@ local function SkidFling(TargetPlayer)
 
 	FlingRunning = true
 
-	local conn = game:GetService('RunService').Heartbeat:Connect(function()
+	local conn = RunService.Heartbeat:Connect(function()
 		pcall(function()
 			sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
 			HRP.CFrame = TargetHRP.CFrame * CFrame.new(0, 1.3, 0) * CFrame.Angles(math.rad(0), 0, 0)
@@ -132,25 +191,21 @@ local function SkidFling(TargetPlayer)
 		FlingRunning = false
 	end)
 end
-local TDMRunId = game:GetService("HttpService"):GenerateGUID(true)
-local TeleportService = game:GetService("TeleportService")
-local UserInputService = game:GetService("UserInputService")
-local StarterGui = game:GetService("StarterGui")
+
 
 iyflyspeed = 5
 vehicleflyspeed = 1
-local Players = game:GetService("Players")
 local flyKeyDown,flyKeyUp
-local IYMouse = cloneref(Players.LocalPlayer:GetMouse())
-IsOnMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, game:GetService("UserInputService"):GetPlatform())
+local IYMouse = cloneref(Player:GetMouse())
+IsOnMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, UserInputService:GetPlatform())
 local FLYING = false
 function sFLY(vfly)
 	local valuetable = {}
-	repeat wait() until Players.LocalPlayer and Players.LocalPlayer.Character and Players.LocalPlayer.Character.HumanoidRootPart and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+	repeat wait() until Player and Player.Character and Player.Character.HumanoidRootPart and Player.Character:FindFirstChildOfClass("Humanoid")
 	repeat wait() until IYMouse
 	if flyKeyDown or flyKeyUp then flyKeyDown:Disconnect() flyKeyUp:Disconnect() end
 
-	valuetable.T = Players.LocalPlayer.Character.HumanoidRootPart
+	valuetable.T = Player.Character.HumanoidRootPart
 	local CONTROL = {F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0}
 	local lCONTROL = {F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0}
 	valuetable.SPEED = 0
@@ -168,8 +223,8 @@ function sFLY(vfly)
 		valuetable.BV.maxForce = Vector3.new(9e9, 9e9, 9e9)
 		task.spawn(function()
 			repeat wait()
-				if not vfly and Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then
-					Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').PlatformStand = true
+				if not vfly and Player.Character:FindFirstChildOfClass('Humanoid') then
+					Player.Character:FindFirstChildOfClass('Humanoid').PlatformStand = true
 				end
 				if CONTROL.L + CONTROL.R ~= 0 or CONTROL.F + CONTROL.B ~= 0 or CONTROL.Q + CONTROL.E ~= 0 then
 					valuetable.SPEED = 50
@@ -191,8 +246,8 @@ function sFLY(vfly)
 			valuetable.SPEED = 0
 			valuetable.BG:Destroy()
 			valuetable.BV:Destroy()
-			if Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then
-				Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').PlatformStand = false
+			if Player.Character:FindFirstChildOfClass('Humanoid') then
+				Player.Character:FindFirstChildOfClass('Humanoid').PlatformStand = false
 			end
 		end)
 	end
@@ -225,8 +280,8 @@ end
 function NOFLY()
 	FLYING = false
 	if flyKeyDown or flyKeyUp then flyKeyDown:Disconnect() flyKeyUp:Disconnect() end
-	if Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then
-		Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').PlatformStand = false
+	if Player.Character:FindFirstChildOfClass('Humanoid') then
+		Player.Character:FindFirstChildOfClass('Humanoid').PlatformStand = false
 	end
 	pcall(function() workspace.CurrentCamera.CameraType = Enum.CameraType.Custom end)
 end
@@ -247,7 +302,7 @@ local unmobilefly = function(speaker)
 		mfly2:Disconnect()
 	end)
 end
-local speaker = Players.LocalPlayer
+local speaker = Player
 
 local mobilefly = function(speaker, vfly)
 	unmobilefly(speaker)
@@ -288,7 +343,7 @@ local mobilefly = function(speaker, vfly)
 		bg.D = 50
 	end)
 
-	mfly2 = game:GetService("RunService").RenderStepped:Connect(function()
+	mfly2 = RunService.RenderStepped:Connect(function()
 		root = speaker.Character.HumanoidRootPart
 		camera = workspace.CurrentCamera
 		if speaker.Character:FindFirstChildWhichIsA("Humanoid") and root and root:FindFirstChild(velocityHandlerName) and root:FindFirstChild(gyroHandlerName) then
@@ -357,18 +412,17 @@ local Values = {
 	AntiAfkKick = true,
 }
 
-local aaa = game:GetService("VirtualUser")
 pcall(function()
-	game:GetService('Players').LocalPlayer.Idled:connect(function()
+	Player.Idled:connect(function()
 		if Values.AntiAfkKick then
-			aaa:CaptureController()
-			aaa:ClickButton2(Vector2.new())
+			VirtualUser:CaptureController()
+			VirtualUser:ClickButton2(Vector2.new())
 		end
 	end)
 end)
 
 local sus,gameinfo = pcall(function()
-	return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
+	return MarketplaceService:GetProductInfo(game.PlaceId)
 end)
 if not sus then
 	gameinfo = {
@@ -402,7 +456,7 @@ local MainTab = TabSection:CreateTab({
 })
 
 local function Message(_Title, _Text, Time)
-	game:GetService("StarterGui"):SetCore("SendNotification", {Title = _Title, Text = _Text, Duration = Time})
+	StarterGui:SetCore("SendNotification", {Title = _Title, Text = _Text, Duration = Time})
 end
 
 if identifyexecutor() == "Delta" then
@@ -556,7 +610,7 @@ local teleportvaluestable;teleportvaluestable = {
 			end
 			local pid, sid = teleportvaluestable.checkBatch(batch, image)
 			if pid and sid then return pid, sid end
-			game:GetService("RunService").Heartbeat:Wait()
+			RunService.Heartbeat:Wait()
 		end
 	end,
 	fetchTokens = function(placeId, maxPages,userId)
@@ -719,7 +773,7 @@ Groupbox:CreateToggle({
 	end    
 })
 local function isplayerpart(part)
-	for i,v in ipairs(game:GetService("Players"):GetPlayers()) do
+	for i,v in ipairs(Players:GetPlayers()) do
 		if part:IsDescendantOf(v.Character) then
 			return true
 		end
@@ -806,7 +860,7 @@ Groupbox:CreateButton({
 				end
 			end
 			if File and #File > 0 then
-				writefile([[TDM/TSBAutoBuilder/]]..FileName..".build",game:GetService("HttpService"):JSONEncode(File))
+				writefile([[TDM/TSBAutoBuilder/]]..FileName..".build",HttpService:JSONEncode(File))
 			end
 		end
 	end,
@@ -952,7 +1006,7 @@ Groupbox:CreateToggle({
 	Name = "飞行2",
 	CurrentValue = false,
 	Callback = function(Value)
-		local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+		local character = Player.Character or Player.CharacterAdded:Wait()
 		local Sc = Player.PlayerGui:FindFirstChild("FLUI") or Instance.new("ScreenGui",Player.PlayerGui)
 		Sc.Name = "FLUI"
 		local button
@@ -1294,7 +1348,7 @@ local lockedplayer
 
 table.insert(TDMConnections,UserInputService.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		local mouse = Players.LocalPlayer:GetMouse()
+		local mouse = Player:GetMouse()
 		local mouseposition = Vector2.new(mouse.X,mouse.Y)
 		if (mouseposition-aimbutton.AbsolutePosition+-aimbutton.AbsoluteSize/2).Magnitude <= aimbutton.AbsoluteSize.Y/2 then
 			mainaimbotenabled = true
@@ -1375,7 +1429,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 	end
 
 	if mainaimbot and mainaimbotenabled then
-		local mouse = Players.LocalPlayer:GetMouse()
+		local mouse = Player:GetMouse()
 		local mouseposition = Vector2.new(mouse.X,mouse.Y+58)
 		local function isPointInCenterCircle(point)
 			point = point + Vector2.new(0,58)
@@ -1424,7 +1478,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 	else
 		lockedplayer = nil
 	end
-	for i,v in ipairs(game:GetService("Players"):GetPlayers()) do
+	for i,v in ipairs(Players:GetPlayers()) do
 		if v.Character and v.Character.Parent then
 			if not LastPositionTable[v] then
 				LastPositionTable[v] = v.Character:GetPivot().Position
@@ -1448,15 +1502,15 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 	end
 
 	if moveaimbuttonvalue and not lockposition then
-		aimbutton.Position = UDim2.new(0,Players.LocalPlayer:GetMouse().X,0,Players.LocalPlayer:GetMouse().Y+58)
+		aimbutton.Position = UDim2.new(0,Player:GetMouse().X,0,Player:GetMouse().Y+58)
 	end
 	if CFrameSpeedEnabled then
-		Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
-			Players.LocalPlayer.Character.HumanoidRootPart.CFrame +
-			Players.LocalPlayer.Character.Humanoid.MoveDirection * CFrameSpeed
+		Player.Character.HumanoidRootPart.CFrame =
+			Player.Character.HumanoidRootPart.CFrame +
+			Player.Character.Humanoid.MoveDirection * CFrameSpeed
 	end
 	if fly then
-		local character = Players.LocalPlayer.Character
+		local character = Player.Character
 		local b = character.HumanoidRootPart:FindFirstChild("FLG")
 		if up and not down then
 			b.Velocity = Vector3.new(0,ds,0)
@@ -1471,7 +1525,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 
 end))
 
-if workspace:FindFirstChild("GlobalPianoConnector") and game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("PianoGui") and game:GetService("Players").LocalPlayer.PlayerGui.PianoGui:FindFirstChild("Main") then
+if workspace:FindFirstChild("GlobalPianoConnector") and Player.PlayerGui:FindFirstChild("PianoGui") and Player.PlayerGui.PianoGui:FindFirstChild("Main") then
 	local MidiToTable = GetApi("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/MidiToTable.lua")
 
 	local function MidiNoteToPianoKey(midiNote)
@@ -1486,7 +1540,7 @@ if workspace:FindFirstChild("GlobalPianoConnector") and game:GetService("Players
 
 		return pianoKey
 	end
-	local ftab = getsenv(game:GetService("Players").LocalPlayer.PlayerGui.PianoGui.Main)
+	local ftab = getsenv(Player.PlayerGui.PianoGui.Main)
 	local function Press(index)
 		ftab.PlayNoteClient(index)
 	end
@@ -1494,8 +1548,6 @@ if workspace:FindFirstChild("GlobalPianoConnector") and game:GetService("Players
 	local function Release(index)
 		return
 	end
-	local Players = game:GetService("Players")
-	local Player = Players.LocalPlayer
 
 	local TabSection = Window:CreateTabSection("自动弹琴")
 	local Tab = TabSection:CreateTab({
@@ -1642,7 +1694,7 @@ if workspace:FindFirstChild("GlobalPianoConnector") and game:GetService("Players
 end
 
 if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
-	local Actors = require(game:GetService("ReplicatedStorage").Modules.Gameplay.Actors)
+	local Actors = require(RS.Modules.Gameplay.Actors)
 	local Util = require(game.ReplicatedStorage.Modules.Utilities.Util)
 	local PlayerStaminaManager = (function()
 		local PlayerStaminaManager = {
@@ -1789,7 +1841,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		return PlayerStaminaManager
 	end)()
 
-	local oldaa;oldaa = hookfunction(getconnections(game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent").OnClientEvent)[1].Function,function(...)
+	local oldaa;oldaa = hookfunction(getconnections(RS:WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent").OnClientEvent)[1].Function,function(...)
 		local args = {...}
 		if args[1] == "ActorCreated" then
 			task.delay(.1,function()
@@ -1888,7 +1940,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		end,
 	})
 
-	local Sprinting = require(game:GetService("ReplicatedStorage").Systems.Character.Game.Sprinting)
+	local Sprinting = require(RS.Systems.Character.Game.Sprinting)
 
 	Groupbox:CreateInput({
 		Name = "体力流失速度",
@@ -1975,11 +2027,11 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Callback = function(Value)
 			if Value then
 				if not oldsk8 then
-					oldsk8 = require(game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Config).Sk8PhaseTime
+					oldsk8 = require(RS.Assets.Survivors.Veeronica.Config).Sk8PhaseTime
 				end
-				require(game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Config).Sk8PhaseTime = math.huge
+				require(RS.Assets.Survivors.Veeronica.Config).Sk8PhaseTime = math.huge
 			else
-				require(game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Config).Sk8PhaseTime = oldsk8 or 1
+				require(RS.Assets.Survivors.Veeronica.Config).Sk8PhaseTime = oldsk8 or 1
 			end
 		end
 	})
@@ -2282,7 +2334,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		end,
 	})
 
-	local old;old = hookfunction(require(game:GetService("ReplicatedStorage").Modules.Minigames.FlowGameManager).startGame, function(...)
+	local old;old = hookfunction(require(RS.Modules.Minigames.FlowGameManager).startGame, function(...)
 		local args = {...}
 		if hookgenfunc then
 			print(args[2])
@@ -2617,7 +2669,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 	local lastfakeposition
 	local oldposition
 
-	local oldfireserverc;oldfireserverc = hookfunction(require(game:GetService("ReplicatedStorage").Modules.Network.Network).FireServerConnection,function(self,Name,RE,...)
+	local oldfireserverc;oldfireserverc = hookfunction(require(RS.Modules.Network.Network).FireServerConnection,function(self,Name,RE,...)
 		local args = {...}
 
 		if Name == "UseActorAbility" and hitboxtable[args[1]] then
@@ -2628,7 +2680,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 					local b = hitboxtable[args[1]]
 					local c = tick()
 
-					local a;a = game:GetService("RunService").RenderStepped:Connect(function(dt)
+					local a;a = RunService.RenderStepped:Connect(function(dt)
 						if tick() - t >= b then
 							if oldposition then
 								Player.Character:PivotTo(oldposition)
@@ -2645,8 +2697,8 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 						if hitboxpl then
 							nearst = hitboxpl.Character
 						else
-							for i,v in ipairs(workspace.Players:FindFirstChild(Players.LocalPlayer.Character.Parent == workspace.Players.Killers and "Survivors" or Players.LocalPlayer.Character.Parent == workspace.Players.Survivors and "Killers"):GetChildren()) do
-								if Players:GetPlayerFromCharacter(v) and (not nearst or nearst and (v:IsA("Model") and v.Humanoid.Health ~= 0 and (v.PrimaryPart.Position - Players.LocalPlayer.Character.PrimaryPart.Position).Magnitude <= (nearst.PrimaryPart.Position - Players.LocalPlayer.Character.PrimaryPart.Position).Magnitude)) then
+							for i,v in ipairs(workspace.Players:FindFirstChild(Player.Character.Parent == workspace.Players.Killers and "Survivors" or Player.Character.Parent == workspace.Players.Survivors and "Killers"):GetChildren()) do
+								if Players:GetPlayerFromCharacter(v) and (not nearst or nearst and (v:IsA("Model") and v.Humanoid.Health ~= 0 and (v.PrimaryPart.Position - Player.Character.PrimaryPart.Position).Magnitude <= (nearst.PrimaryPart.Position - Player.Character.PrimaryPart.Position).Magnitude)) then
 									nearst = v
 								end
 							end
@@ -2702,12 +2754,12 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 	table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 		if PosTog and Player.Character and Player.Character:FindFirstChild("QueryHitbox") then
 			if (Player.Character:FindFirstChild("QueryHitbox").Position - Vector3.new(0,-6000,0)).Magnitude > 5 then
-				require(game:GetService("ReplicatedStorage").Modules.Network.Network):FireServerConnection("UpdateCharacterPosition","UREMOTE_EVENT",require(game:GetService("ReplicatedStorage").Systems.Player.Game.CharacterReplication).Serialize(CFrame.new(0,-6000,0),Player.Character.PrimaryPart.AssemblyLinearVelocity))
+				require(RS.Modules.Network.Network):FireServerConnection("UpdateCharacterPosition","UREMOTE_EVENT",require(RS.Systems.Player.Game.CharacterReplication).Serialize(CFrame.new(0,-6000,0),Player.Character.PrimaryPart.AssemblyLinearVelocity))
 			end
 		end
 
-		if autojump and game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight") then
-			if game:GetService("ReplicatedStorage").Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight").Adornee == Player.Character then
+		if autojump and RS.Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight") then
+			if RS.Assets.Survivors.Veeronica.Behavior:FindFirstChild("Highlight").Adornee == Player.Character then
 				keypress(32)
 				task.delay(1,function()
 					keyrelease(32)
@@ -2766,7 +2818,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 							end
 						end
 						if MouseAim and AnimationsTable[index] == "2" then
-							require(game:GetService("ReplicatedStorage").Systems.Player.Miscellaneous.GetPlayerMousePosition).GetMousePos = function(v2)
+							require(RS.Systems.Player.Miscellaneous.GetPlayerMousePosition).GetMousePos = function(v2)
 								local l_Character_0 = Player.Character
 								local v11 = require(game.ReplicatedStorage.Modules.Util);
 								local l_v11_ClosestPlayerFromPosition_0 = v11:GetClosestPlayerFromPosition(l_Character_0 and l_Character_0.PrimaryPart and l_Character_0.PrimaryPart.Position or Vector3.new(), {
@@ -2886,7 +2938,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		end
 
 		if not MouseAim then
-			require(game:GetService("ReplicatedStorage").Systems.Player.Miscellaneous.GetPlayerMousePosition).GetMousePos = _G.TDMMouseFunction
+			require(RS.Systems.Player.Miscellaneous.GetPlayerMousePosition).GetMousePos = _G.TDMMouseFunction
 		end
 	end))
 
@@ -2902,10 +2954,10 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 
 	local tbk = {}
 
-	for i,v in ipairs(game:GetService("ReplicatedStorage").Assets.Killers:GetChildren()) do
+	for i,v in ipairs(RS.Assets.Killers:GetChildren()) do
 		tbk[#tbk+1] = v.Name
 	end
-	for i,v in ipairs(game:GetService("ReplicatedStorage").Assets.Survivors:GetChildren()) do
+	for i,v in ipairs(RS.Assets.Survivors:GetChildren()) do
 		tbk[#tbk+1] = v.Name
 	end
 	local Unit
@@ -2923,11 +2975,11 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Callback = function(Options)
 
 
-			Unit = game:GetService("ReplicatedStorage").Assets.Killers:FindFirstChild(unpack(Options),true) or game:GetService("ReplicatedStorage").Assets.Survivors:FindFirstChild(unpack(Options),true)
+			Unit = RS.Assets.Killers:FindFirstChild(unpack(Options),true) or RS.Assets.Survivors:FindFirstChild(unpack(Options),true)
 			Skin = nil
 			local tbs = {}
-			if game:GetService("ReplicatedStorage").Assets.Skins:FindFirstChild(unpack(Options),true) then
-				for i,v in ipairs(game:GetService("ReplicatedStorage").Assets.Skins:FindFirstChild(unpack(Options),true):GetChildren()) do
+			if RS.Assets.Skins:FindFirstChild(unpack(Options),true) then
+				for i,v in ipairs(RS.Assets.Skins:FindFirstChild(unpack(Options),true):GetChildren()) do
 					table.insert(tbs,v.Name) 
 				end
 			end
@@ -3011,7 +3063,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 		Flag = "Dropdown1",
 		Callback = function(Options)
 			pcall(function()
-				Skin = game:GetService("ReplicatedStorage").Assets.Skins:FindFirstChild(unpack(Options),true) or nil
+				Skin = RS.Assets.Skins:FindFirstChild(unpack(Options),true) or nil
 				local sound = {}
 				if require(Skin.Config).Sounds then
 					for i,v in pairs(require(Skin.Config).Sounds) do
@@ -3085,13 +3137,13 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 	local PlaySound = Groupbox:CreateButton({
 		Name = "播放音效",
 		Callback = function()
-			require(game:GetService("ReplicatedStorage").Modules.Sounds):Play(Sound)
+			require(RS.Modules.Sounds):Play(Sound)
 		end,
 	})
 	local PlaySound = Groupbox:CreateButton({
 		Name = "停止音效",
 		Callback = function()
-			require(game:GetService("ReplicatedStorage").Modules.Sounds):Stop(Sound)
+			require(RS.Modules.Sounds):Stop(Sound)
 		end,
 	})
 
@@ -3111,14 +3163,14 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 			end
 			if config and config.Animations and unpack(Options) ~= "" then
 				if string.find(unpack(Options),"|") then
-					local Animator = game:GetService("Players").LocalPlayer.Character.Humanoid:FindFirstChild("Animator") or Instance.new("Animator",game:GetService("Players").LocalPlayer.Character.Humanoid)
+					local Animator = Player.Character.Humanoid:FindFirstChild("Animator") or Instance.new("Animator",Player.Character.Humanoid)
 					local animation = Animator:FindFirstChild(unpack(Options)) or Instance.new("Animation",Animator)
 					animation.AnimationId = config.Animations[string.sub(unpack(Options),1,string.find(unpack(Options),"|")-1)][string.sub(unpack(Options),string.find(unpack(Options),"|")+1,-1)]
 					animation.Name = unpack(Options)
 					Animation = Animator:LoadAnimation(animation)
 				else
 
-					local Animator = game:GetService("Players").LocalPlayer.Character.Humanoid:FindFirstChild("Animator") or Instance.new("Animator",game:GetService("Players").LocalPlayer.Character.Humanoid)
+					local Animator = Player.Character.Humanoid:FindFirstChild("Animator") or Instance.new("Animator",Player.Character.Humanoid)
 					local animation = Animator:FindFirstChild(unpack(Options)) or Instance.new("Animation",Animator)
 					animation.AnimationId = config.Animations[unpack(Options)]
 					animation.Name = unpack(Options)
@@ -3257,7 +3309,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 								local Animation
 								if config and config.Animations and v ~= "" then
 									if string.find(v,"|") then
-										local Animator = game:GetService("Players").LocalPlayer.Character.Humanoid:FindFirstChild("Animator") or Instance.new("Animator",game:GetService("Players").LocalPlayer.Character.Humanoid)
+										local Animator = Player.Character.Humanoid:FindFirstChild("Animator") or Instance.new("Animator",Player.Character.Humanoid)
 										local animation = Animator:FindFirstChild(v) or Instance.new("Animation",Animator)
 										if typeof(config.Animations[string.sub(v,1,string.find(v,"|")-1)][string.sub(v,string.find(v,"|")+1,-1)]) == "string" then
 											animation.AnimationId = config.Animations[string.sub(v,1,string.find(v,"|")-1)][string.sub(v,string.find(v,"|")+1,-1)]
@@ -3265,7 +3317,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 											Animation = Animator:LoadAnimation(animation)
 										end
 									else
-										local Animator = game:GetService("Players").LocalPlayer.Character.Humanoid:FindFirstChild("Animator") or Instance.new("Animator",game:GetService("Players").LocalPlayer.Character.Humanoid)
+										local Animator = Player.Character.Humanoid:FindFirstChild("Animator") or Instance.new("Animator",Player.Character.Humanoid)
 										local animation = Animator:FindFirstChild(v) or Instance.new("Animation",Animator)
 										animation.AnimationId = config.Animations[v]
 										animation.Name = v
@@ -3299,7 +3351,7 @@ if MatchPlaceId(83645629621104,18687417158) then -- Forsaken
 
 	table.insert(TDMConnections,RunService.RenderStepped:Connect(function()
 		if InfStamina then
-			require(game:GetService("ReplicatedStorage").Systems.Character.Game.Sprinting).Stamina = math.huge
+			require(RS.Systems.Character.Game.Sprinting).Stamina = math.huge
 		end
 	end))
 elseif MatchPlaceId(6520999642) then
@@ -3309,7 +3361,7 @@ elseif MatchPlaceId(6520999642) then
 
 	local function TaskDelay(T,Callback)
 		local Runned = 0
-		local a;a = game:GetService("RunService").PreSimulation:Connect(function(dt)
+		local a;a = RunService.PreSimulation:Connect(function(dt)
 			Runned += dt
 			if Runned >= T then
 				Callback()
@@ -3319,7 +3371,7 @@ elseif MatchPlaceId(6520999642) then
 	end
 
 	local function Refresh()
-		local s = game:GetService("Players").LocalPlayer.PlayerGui.Main.FNFMain.songPlay
+		local s = Player.PlayerGui.Main.FNFMain.songPlay
 		local a = require(s)
 
 		local CreateNote
@@ -3335,7 +3387,7 @@ elseif MatchPlaceId(6520999642) then
 
 		local KeyPress = getsenv(s).KeyPress
 		local KeyLift = getsenv(s).KeyLift
-		local Inputs = getsenv(game:GetService("Players").LocalPlayer.PlayerGui.Main.FNFMain.songPlay)._G.Settings.Inputs
+		local Inputs = getsenv(Player.PlayerGui.Main.FNFMain.songPlay)._G.Settings.Inputs
 
 		local function InputArrow(args)
 			coroutine.wrap(function()
@@ -3398,17 +3450,14 @@ elseif MatchPlaceId(6520999642) then
 		end
 	end)
 elseif MatchPlaceId(116362330852395) then
-	local UpdateBulletsCount = game:GetService("ReplicatedStorage"):WaitForChild("UpdateBulletsCount")
-	local AddDataChips = game:GetService("ReplicatedStorage").AddDataChips
-	local GunRaycast = game:GetService("ReplicatedStorage").GunRaycast
-
-	local Players = game:GetService("Players")
-	local Player = Players.LocalPlayer
+	local UpdateBulletsCount = RS:WaitForChild("UpdateBulletsCount")
+	local AddDataChips = RS.AddDataChips
+	local GunRaycast = RS.GunRaycast
 
 	local HeadInWaterChange = false
 
 	function GetToolToBackpack(Tool)
-		game:GetService("ReplicatedStorage"):WaitForChild("GrabPart"):FireServer(
+		RS:WaitForChild("GrabPart"):FireServer(
 			Tool,
 			1
 		)
@@ -3624,7 +3673,7 @@ elseif MatchPlaceId(116362330852395) then
 			AutoShoot = Value
 		end,
 	})
-	local Lighting = game:GetService("Lighting")
+
 	Tab:CreateToggle({
 		Name = "全亮",
 		CurrentValue = false,
@@ -3650,7 +3699,7 @@ elseif MatchPlaceId(116362330852395) then
 	table.insert(Connects,RunService.RenderStepped:Connect(function()
 		if HeadInWaterChange and tick()-lasto >= 1 then
 			lasto = tick()
-			game:GetService("ReplicatedStorage"):WaitForChild("UseOxygen"):FireServer(100)
+			RS:WaitForChild("UseOxygen"):FireServer(100)
 		end
 
 		local Camera = workspace.CurrentCamera
@@ -3711,10 +3760,9 @@ elseif MatchPlaceId(13042495892) then
 		end    
 	})
 
-	local UIS = game:GetService("UserInputService")
-	local RunService = game:GetService("RunService")
-	local LP = game:GetService("Players").LocalPlayer
-	local VirtualInputManager = game:GetService("VirtualInputManager")
+	local UIS = UserInputService
+	local RunService = RunService
+	local LP = Player
 
 	local keyStates = {}
 	local Script = getsenv(LP.PlayerScripts.Client)
@@ -3758,7 +3806,7 @@ elseif MatchPlaceId(13042495892) then
 		end
 		return false
 	end
-	
+
 	local Hit = Script.goodHit
 
 	table.insert(Connects,RunService.Stepped:Connect(function()
@@ -3777,7 +3825,7 @@ elseif MatchPlaceId(13042495892) then
 
 			local timeLeft = note.strumTime - now
 
-			if timeLeft <= 25 and timeLeft >= -hitWindow then
+			if timeLeft <= 45 and timeLeft >= -hitWindow then
 				local key = getKeyForNote(note)
 
 				if note.sustainNote and note.isEnd then
@@ -3794,6 +3842,163 @@ elseif MatchPlaceId(13042495892) then
 				else
 					Hit(note)
 				end
+			end
+		end
+	end))
+elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
+	local TabSection = Window:CreateTabSection("FNF")
+	local MainTab = TabSection:CreateTab({
+		Name = "橡树地",
+		Columns = 1,
+	})
+
+	local Tab = MainTab:CreateGroupbox({
+		Name = "透视",
+		Column = 1,
+	})
+	
+	TreeEsp = false
+	OreEsp = false
+	EnemyEsp = false
+	
+	Tab:CreateToggle({
+		Name = "树木",
+		CurrentValue = TreeEsp,
+		Callback = function(Value)
+			TreeEsp = Value
+		end    
+	})
+	
+	Tab:CreateToggle({
+		Name = "矿物",
+		CurrentValue = OreEsp,
+		Callback = function(Value)
+			OreEsp = Value
+		end,
+	})
+	
+	Tab:CreateToggle({
+		Name = "生物",
+		CurrentValue = EnemyEsp,
+		Callback = function(Value)
+			EnemyEsp = Value
+		end,
+	})
+	
+	local Cache = {}
+	local Translator:Translator
+	
+	local function OakEsp(v,Color,Text,translate)
+		Text = Text or v.Name
+		
+		if translate then
+			if not Translator then
+				Translator = LocalizationService:GetTranslatorForPlayer(Player)
+			end
+
+			if not Cache[Text] then
+				local sourceTranslation = Translator:Translate(game, Text)
+				Cache[Text] = sourceTranslation
+			end
+			
+			Text = Cache[Text]
+		end
+	
+		EspLib:WrapObject({
+			Object = v,
+			DisplayText = Text,
+			Color = Color or Color3.new(1,1,1),
+		})
+	end
+	
+	local Tab = MainTab:CreateGroupbox({
+		Name = "运输",
+		Column = 1,
+	})
+	
+	local TPItem = false
+	
+	Tab:CreateToggle({
+		Name = "运输物品到储物柜（用吸枪，储物柜命名为物品名字或Here）",
+		CurrentValue = TPItem,
+		Callback = function(Value)
+			TPItem = Value
+		end,
+	})
+	
+	local tpfpl 
+	Groupbox:CreateDropdown({
+		Special = 1,
+		Name = "选择玩家",
+		Options = {},
+		Required = true,
+		MultipleOptions = false,
+		CanNoneSeleted = true,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			tpfpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
+		end,
+	})
+	
+	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
+		if TPItem and tpfpl.Character then
+			for i,v in workspace.World.LooseItems:GetChildren() do
+				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
+					local p = v
+					if v:IsA("Model") then
+						p = v.PrimaryPart
+					end
+					
+					local filter = workspace.World.Structures:QueryDescendants(`#1x1StorageDrawer[$Text = {v.Name}]:has(#Owner)`)
+					if #filter == 0 then
+						filter = workspace.World.Structures:QueryDescendants(`#1x1StorageDrawer[$Text = Here]:has(#Owner)`)
+					end
+
+					for i,a in filter do
+						if a.Owner.Value.Name == tpfpl.Name then
+							v:PivotTo(a.BoundingBox.CFrame)
+
+							local b = workspace.World.Effects:FindFirstChild("WeldRegion")
+							if b then
+								b:PivotTo(a.BoundingBox.CFrame)
+							end
+							break
+						end
+					end
+				end
+			end
+		end
+		
+		if TreeEsp then
+			for i,v in workspace.World.TreeRegions:GetChildren() do
+				local Name = v.Name
+				if v:FindFirstChild("Tree") then
+					for _,v in v:GetChildren() do
+						if v.Name == "Tree" then
+							OakEsp(v,Color3.new(1, 0.584314, 0),Name)
+						end
+					end
+				end
+			end
+		end
+		
+		if OreEsp then
+			for i,v in workspace.World.RockRegions:GetChildren() do
+				local Name = v.Name
+				if v:FindFirstChild("") then
+					for _,v in v:GetChildren() do
+						if v.Name == "" then
+							OakEsp(v,Color3.new(0.478431, 0.478431, 0.478431),Name)
+						end
+						
+					end
+				end
+			end
+		end
+		
+		if EnemyEsp then
+			for i,v in workspace.World.Enemies:GetChildren() do
+				OakEsp(v,v:GetAttribute("RequiresWeapon") and Color3.new(0.435294, 1, 0) or Color3.new(1,0,0))
 			end
 		end
 	end))
