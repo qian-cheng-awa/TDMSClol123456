@@ -17,6 +17,7 @@ local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
 
+local Starlight
 local TDMRunId = HttpService:GenerateGUID(true)
 
 local getgenv = getgenv or function()
@@ -44,13 +45,23 @@ end
 
 local ScreenSize = workspace.CurrentCamera.ViewportSize
 
-
 if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
 	local sc = require(RF.Client)
 	if sc.GetModule then
-		hookfunction(getupvalue(sc.GetModule,1),function()
+		task.spawn(function()
+			StarterGui:SetCore("SendNotification",{
+				Title = "TDM",
+				Text = "已拦截第三方检测",
+			})
+		end)
+		local old;old = hookfunction(getupvalue(sc.GetModule,1),function()
 			if checkcaller() then
-				warn("hooked while stack")
+				if Starlight then
+					Starlight:Notification({
+						Title = "while循环卡死拦截",
+						Content = `已拦截一次第三方检测 ： {string.gsub(tostring(old),"function: ","")}`,
+					})
+				end
 			end
 		end)
 	end
@@ -59,18 +70,38 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 	local IsA = game.IsA
 	local GetFullName = game.GetFullName
 	if remote then
-		print("hook")
-		local old;old = hookmetamethod(game,"__namecall",newcclosure(function(r,...)
+		task.spawn(function()
+			StarterGui:SetCore("SendNotification",{
+				Title = "TDM",
+				Text = "找到事件！已拦截封禁",
+			})
+		end)
+		local old;old = hookmetamethod(game,"__namecall",function(r,...)
 			local namecallmethod = string.lower(getnamecallmethod())
-			if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then warn("hooked banned : "..getcallingscript():GetFullName()) else
+			if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then
+				local banfunc = debug.info(3,"f")
+				task.spawn(function()
+					if Starlight then
+						Starlight:Notification({
+							Title = "封禁拦截",
+							Content = `已拦截并禁用封禁函数 ： {string.gsub(tostring(banfunc),"function: ","")}`,
+						})
+					end
+				end)
+				hookfunction(banfunc,function() end)
+			else
 				return old(r,...)
 			end
-		end))
+		end)
 	else
-		print("no event found")
+		task.spawn(function()
+			StarterGui:SetCore("SendNotification",{
+				Title = "TDM",
+				Text = "未找到事件！尝试重进游戏并等待游戏加载完成再执行脚本",
+			})
+		end)
 	end
 end
-
 
 local isnetworkowner = function(Part)
 	if Part:IsA("Model") then
@@ -448,7 +479,7 @@ end
 
 local EspLib = loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/EspLib.luau"))()
 
-local Starlight = loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/Starlight.luau"))()
+Starlight = loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/Starlight.luau"))()
 
 local Values = {
 	AntiAfkKick = true,
