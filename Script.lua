@@ -81,14 +81,13 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 			if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then
 				local banfunc = debug.info(3,"f")
 				task.spawn(function()
-					if Starlight then
-						Starlight:Notification({
-							Title = "封禁拦截",
-							Content = `已拦截并禁用封禁函数 ： {string.gsub(tostring(banfunc),"function: ","")}`,
-						})
-					end
+					StarterGui:SetCore("SendNotification",{
+						Title = "封禁拦截",
+						Text = `已拦截并禁用封禁函数 ： {string.gsub(tostring(banfunc),"function: ","")}`,
+					})
 				end)
-				hookfunction(banfunc,function() end)
+				
+				fuckyou()
 			else
 				return old(r,...)
 			end
