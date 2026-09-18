@@ -86,7 +86,7 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 						Text = `已拦截并禁用封禁函数 ： {string.gsub(tostring(banfunc),"function: ","")}`,
 					})
 				end)
-				
+
 				fuckyou()
 			else
 				return old(r,...)
@@ -596,6 +596,16 @@ Groupbox:CreateToggle({
 	CurrentValue = tptotarget,
 	Callback = function(Value)
 		tptotarget = Value
+	end    
+})
+
+local targettp = false
+
+Groupbox:CreateToggle({
+	Name = "吸人",
+	CurrentValue = targettp,
+	Callback = function(Value)
+		targettp = Value
 	end    
 })
 
@@ -1522,6 +1532,16 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 					sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
 					HRP.CFrame = TargetHRP.CFrame * CFrame.new(Offset2, 0, Offset1) * CFrame.Angles(0, math.rad(Offset3), 0)
 				end)
+			end
+		end
+	end
+	
+	if targettp and fpl and fpl.Character then
+		local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
+		if HRP then
+			local TargetHRP = fpl.Character:FindFirstChild("HumanoidRootPart")
+			if TargetHRP then
+				TargetHRP.CFrame = HRP.CFrame * CFrame.new(Offset2, 0, Offset1) * CFrame.Angles(0, math.rad(Offset3), 0)
 			end
 		end
 	end
