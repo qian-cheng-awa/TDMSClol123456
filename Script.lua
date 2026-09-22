@@ -76,7 +76,7 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 				Text = "找到事件！已拦截封禁",
 			})
 		end)
-		local old;old = hookmetamethod(game,"__namecall",function(r,...)
+		local old;old = hookmetamethod(game,"__namecall",newcclosure(function(r,...)
 			local namecallmethod = string.lower(getnamecallmethod())
 			if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then
 				local banfunc = debug.info(3,"f")
@@ -91,7 +91,7 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 			else
 				return old(r,...)
 			end
-		end)
+		end))
 	else
 		task.spawn(function()
 			StarterGui:SetCore("SendNotification",{
@@ -596,16 +596,6 @@ Groupbox:CreateToggle({
 	CurrentValue = tptotarget,
 	Callback = function(Value)
 		tptotarget = Value
-	end    
-})
-
-local targettp = false
-
-Groupbox:CreateToggle({
-	Name = "吸人",
-	CurrentValue = targettp,
-	Callback = function(Value)
-		targettp = Value
 	end    
 })
 
@@ -1535,16 +1525,6 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 			end
 		end
 	end
-	
-	if targettp and fpl and fpl.Character then
-		local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
-		if HRP then
-			local TargetHRP = fpl.Character:FindFirstChild("HumanoidRootPart")
-			if TargetHRP then
-				TargetHRP.CFrame = HRP.CFrame * CFrame.new(Offset2, 0, Offset1) * CFrame.Angles(0, math.rad(Offset3), 0)
-			end
-		end
-	end
 
 	if mainaimbot and mainaimbotenabled then
 		local mouse = Player:GetMouse()
@@ -2201,6 +2181,9 @@ elseif MatchPlaceId(116362330852395) then
 elseif MatchPlaceId(13042495892) then
 	local BotPlay = false
 	local TabSection = Window:CreateTabSection("FNF")
+	
+	local BotPlayToggleFunction
+	
 	local MainTab = TabSection:CreateTab({
 		Name = "午夜之后",
 		Columns = 1,
@@ -2210,13 +2193,39 @@ elseif MatchPlaceId(13042495892) then
 		Name = "自动游玩",
 		Column = 1,
 	})
-
-	Tab:CreateToggle({
+	
+	local autoplaytype = "Hook"
+	
+	local autotoggle = false
+	
+	Tab:CreateDropdown({
+		Name = "模式",
+		Options = {"Hook","官方"},
+		CurrentOption = {autoplaytype},
+		MultipleOptions = false,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			autoplaytype = Options[1]
+			if autoplaytype == "官方" then
+				BotPlay = false
+				if BotPlayToggleFunction then
+					autotoggle:Set(debug.getupvalue(BotPlayToggleFunction,1))
+				end
+			end
+		end,
+	})
+	
+	autotoggle = Tab:CreateToggle({
 		Name = "开启",
 		CurrentValue = BotPlay,
 		Callback = function(Value)
-			BotPlay = Value
-		end    
+			if autoplaytype == "Hook" then
+				BotPlay = Value
+			elseif BotPlayToggleFunction then
+				BotPlayToggleFunction()
+				autotoggle:Set(debug.getupvalue(BotPlayToggleFunction,1))
+			end
+		end
 	})
 
 	local UIS = UserInputService
@@ -2225,6 +2234,7 @@ elseif MatchPlaceId(13042495892) then
 
 	local keyStates = {}
 	local Script = getsenv(LP.PlayerScripts.Client)
+	BotPlayToggleFunction = Script.toggleAutoplay
 	local API = Script.shared.getGlobals()
 	local function getKeyForNote(note)
 		local strum = note.strum or (note.strumLine and note.strumLine.Strums and note.strumLine.Strums[note.noteData])
