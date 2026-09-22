@@ -2198,6 +2198,8 @@ elseif MatchPlaceId(13042495892) then
 	
 	local autotoggle = false
 	
+	local oldbotplay = BotPlay
+	
 	Tab:CreateDropdown({
 		Name = "模式",
 		Options = {"Hook","官方"},
@@ -2207,10 +2209,14 @@ elseif MatchPlaceId(13042495892) then
 		Callback = function(Options)
 			autoplaytype = Options[1]
 			if autoplaytype == "官方" then
+				oldbotplay = BotPlay
 				BotPlay = false
 				if BotPlayToggleFunction then
 					autotoggle:Set(debug.getupvalue(BotPlayToggleFunction,1))
 				end
+			else
+				autotoggle:Set(oldbotplay)
+				BotPlay = oldbotplay
 			end
 		end,
 	})
