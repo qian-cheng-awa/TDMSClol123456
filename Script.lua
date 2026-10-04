@@ -2,6 +2,68 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
+local oldGetChildren
+oldGetChildren = hookfunction(game.GetChildren, function(self, ...)
+	if checkcaller() then return oldGetChildren(self,...) end
+	local children = oldGetChildren(self, ...)
+	local filtered = {}
+	for _, child in ipairs(children) do
+		if child.ClassName ~= "VirtualInputManager" and child.ClassName ~= "VirtualUser" then
+			table.insert(filtered, child)
+		end
+	end
+	return filtered
+end)
+
+local bold;bold = hookmetamethod(game,"__index",function(self,key)
+	if checkcaller() then return bold(self,key) end
+	if self == game and (key == "VirtualInputManager" or key == "VirtualUser") then
+		error(`{key} is not a valid member of DataModel "{game.Name}"`)
+	end
+	return bold(self,key)
+end)
+
+local bold1;bold1 = hookmetamethod(game,"__namecall",function(self,...)
+	if checkcaller() then return bold1(self,...) end
+	local method = getnamecallmethod()
+	if string.lower(method) == "findservice" and self == game and ((...) == "VirtualInputManager" or (...) == "VirtualUser") then
+		return nil
+	end
+
+	if string.lower(method) == "getchildren" and self == game then
+		local children = bold1(self, ...)
+		local filtered = {}
+		for _, v in ipairs(children) do
+			if v.ClassName ~= "VirtualInputManager" and v.ClassName ~= "VirtualUser" then
+				filtered[#filtered + 1] = v
+			end
+		end
+		return filtered
+	end
+
+	if string.lower(method) == "getdescendants" and self == game then
+		local descendants = bold1(self, ...)
+		local filtered = {}
+		for _, v in ipairs(descendants) do
+			if v.ClassName ~= "VirtualInputManager" and v.ClassName ~= "VirtualUser" then
+				filtered[#filtered + 1] = v
+			end
+		end
+		return filtered
+	end
+
+	if (string.lower(method) == "findfirstchild" or 
+		string.lower(method) == "findfirstchildwhichisA" or string.lower(method) == "findfirstchildofclass" or
+		string.lower(method) == "waitforchild") and 
+		self == game then
+
+		if ((...) == "VirtualInputManager" or (...) == "VirtualUser") then
+			return nil
+		end
+	end
+
+	return bold1(self,...)
+end)
 
 local RS = game:GetService("ReplicatedStorage")
 local RF = game:GetService("ReplicatedFirst")
@@ -30,6 +92,8 @@ local AlrLoaded1 = LoadedUrlSTR or {}
 getgenv().LoadedUrlSTR = AlrLoaded1
 
 local Player = Players.LocalPlayer
+local Mouse = cloneref(Player:GetMouse())
+
 local PlayerPing = Player:GetNetworkPing()
 
 local GuiMain = Player.PlayerGui
@@ -56,12 +120,6 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 		end)
 		local old;old = hookfunction(getupvalue(sc.GetModule,1),function()
 			if checkcaller() then
-				if Starlight then
-					Starlight:Notification({
-						Title = "while循环卡死拦截",
-						Content = `已拦截一次第三方检测 ： {string.gsub(tostring(old),"function: ","")}`,
-					})
-				end
 			end
 		end)
 	end
@@ -102,16 +160,16 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 	end
 end
 
-local isnetworkowner = function(Part)
+local isnetworkowner = function(Part:Part)
 	if Part:IsA("Model") then
 		Part = Part.PrimaryPart
 	end
-
-	if not Part then
+	
+	if not Part or (Part.Anchored or Part:IsGrounded()) then
 		return false
 	end
-
-	return not Part:IsGrounded() and Part.AssemblyRootPart.ReceiveAge == 0
+	
+	return Part.AssemblyRootPart.ReceiveAge == 0
 end
 
 local cloneref = cloneref or function(...) return ... end
@@ -268,13 +326,12 @@ end
 
 iyflyspeed = 5
 local flyKeyDown,flyKeyUp
-local IYMouse = cloneref(Player:GetMouse())
 IsOnMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, UserInputService:GetPlatform())
 local FLYING = false
 function sFLY(vfly)
 	local valuetable = {}
 	repeat wait() until Player and Player.Character and Player.Character.HumanoidRootPart and Player.Character:FindFirstChildOfClass("Humanoid")
-	repeat wait() until IYMouse
+	repeat wait() until Mouse
 	if flyKeyDown or flyKeyUp then flyKeyDown:Disconnect() flyKeyUp:Disconnect() end
 
 	valuetable.T = Player.Character.HumanoidRootPart
@@ -323,7 +380,7 @@ function sFLY(vfly)
 			end
 		end)
 	end
-	flyKeyDown = IYMouse.KeyDown:Connect(function(KEY)
+	flyKeyDown = Mouse.KeyDown:Connect(function(KEY)
 		if KEY:lower() == 'w' then
 			CONTROL.F = iyflyspeed
 		elseif KEY:lower() == 's' then
@@ -335,7 +392,7 @@ function sFLY(vfly)
 		end
 		pcall(function() workspace.CurrentCamera.CameraType = Enum.CameraType.Track end)
 	end)
-	flyKeyUp = IYMouse.KeyUp:Connect(function(KEY)
+	flyKeyUp = Mouse.KeyUp:Connect(function(KEY)
 		if KEY:lower() == 'w' then
 			CONTROL.F = 0
 		elseif KEY:lower() == 's' then
@@ -1446,8 +1503,7 @@ local lockedplayer
 
 table.insert(TDMConnections,UserInputService.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		local mouse = Player:GetMouse()
-		local mouseposition = Vector2.new(mouse.X,mouse.Y)
+		local mouseposition = Vector2.new(Mouse.X,Mouse.Y)
 		if (mouseposition-aimbutton.AbsolutePosition+-aimbutton.AbsoluteSize/2).Magnitude <= aimbutton.AbsoluteSize.Y/2 then
 			mainaimbotenabled = true
 		end
@@ -1527,8 +1583,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 	end
 
 	if mainaimbot and mainaimbotenabled then
-		local mouse = Player:GetMouse()
-		local mouseposition = Vector2.new(mouse.X,mouse.Y+58)
+		local mouseposition = Vector2.new(Mouse.X,Mouse.Y+58)
 		local function isPointInCenterCircle(point)
 			point = point + Vector2.new(0,58)
 			if not aimcircle then
@@ -1540,6 +1595,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 			for i,v in ipairs(Players:GetPlayers()) do
 				local character = v.Character
 				if character and v ~= Player and v.Character ~= Player.Character then
+					local Camera = workspace.CurrentCamera
 					local ScreenPoint, OnScreen = Camera:WorldToScreenPoint(character:GetPivot().Position)
 					local ScreenPoint2, OnScreen2 = Camera:WorldToScreenPoint(lockedplayer and lockedplayer:GetPivot().Position or character:GetPivot().Position)
 					ScreenPoint = Vector2.new(ScreenPoint.X,ScreenPoint.Y+58)
@@ -1600,7 +1656,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 	end
 
 	if moveaimbuttonvalue and not lockposition then
-		aimbutton.Position = UDim2.new(0,Player:GetMouse().X,0,Player:GetMouse().Y+58)
+		aimbutton.Position = UDim2.new(0,Mouse.X,0,Mouse.Y+58)
 	end
 	if CFrameSpeedEnabled then
 		Player.Character.HumanoidRootPart.CFrame =
@@ -2181,9 +2237,6 @@ elseif MatchPlaceId(116362330852395) then
 elseif MatchPlaceId(13042495892) then
 	local BotPlay = false
 	local TabSection = Window:CreateTabSection("FNF")
-	
-	local BotPlayToggleFunction
-	
 	local MainTab = TabSection:CreateTab({
 		Name = "午夜之后",
 		Columns = 1,
@@ -2193,45 +2246,13 @@ elseif MatchPlaceId(13042495892) then
 		Name = "自动游玩",
 		Column = 1,
 	})
-	
-	local autoplaytype = "Hook"
-	
-	local autotoggle = false
-	
-	local oldbotplay = BotPlay
-	
-	Tab:CreateDropdown({
-		Name = "模式",
-		Options = {"Hook","官方"},
-		CurrentOption = {autoplaytype},
-		MultipleOptions = false,
-		Placeholder = "None Selected",
-		Callback = function(Options)
-			autoplaytype = Options[1]
-			if autoplaytype == "官方" then
-				oldbotplay = BotPlay
-				BotPlay = false
-				if BotPlayToggleFunction then
-					autotoggle:Set(debug.getupvalue(BotPlayToggleFunction,1))
-				end
-			else
-				autotoggle:Set(oldbotplay)
-				BotPlay = oldbotplay
-			end
-		end,
-	})
-	
-	autotoggle = Tab:CreateToggle({
+
+	Tab:CreateToggle({
 		Name = "开启",
 		CurrentValue = BotPlay,
 		Callback = function(Value)
-			if autoplaytype == "Hook" then
-				BotPlay = Value
-			elseif BotPlayToggleFunction then
-				BotPlayToggleFunction()
-				autotoggle:Set(debug.getupvalue(BotPlayToggleFunction,1))
-			end
-		end
+			BotPlay = Value
+		end    
 	})
 
 	local UIS = UserInputService
@@ -2240,7 +2261,6 @@ elseif MatchPlaceId(13042495892) then
 
 	local keyStates = {}
 	local Script = getsenv(LP.PlayerScripts.Client)
-	BotPlayToggleFunction = Script.toggleAutoplay
 	local API = Script.shared.getGlobals()
 	local function getKeyForNote(note)
 		local strum = note.strum or (note.strumLine and note.strumLine.Strums and note.strumLine.Strums[note.noteData])
@@ -2442,7 +2462,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 	local Cache = {}
 	local Translator:Translator
-
+	
+	local scr = game:GetService("ReplicatedFirst"):FindFirstChild("Client")
+	local Client = require(scr)
+	local Translations = Client:RequestModule("Translations")
 
 	local function OakEsp(v,Color,Text,translate)
 		Text = Text or v.Name
@@ -2453,7 +2476,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 
 			if not Cache[Text] then
-				local sourceTranslation = Translator:Translate(game, Text)
+				local FinalName = Translations:GetTranslation(
+					Text
+				)
+				local sourceTranslation = Translator:Translate(game, FinalName)
 				Cache[Text] = sourceTranslation
 			end
 
@@ -2487,6 +2513,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Special = 1,
 		Name = "选择玩家",
 		Options = {},
+		CurrentOption = {Player.Name},
 		Required = true,
 		MultipleOptions = false,
 		CanNoneSeleted = true,
@@ -2495,6 +2522,54 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			tpfpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
+	
+	Tab:CreateButton({
+		Name = "切换单人服",
+		Callback = function()
+			local scr = game:GetService("ReplicatedFirst"):FindFirstChild("Client")
+			local Client = require(scr)
+
+			Client:TellServer("PlaySolo")
+		end,
+	})
+	
+	local MainTab = TabSection:CreateTab({
+		Name = "传送",
+		Columns = 1,
+	})
+	
+	local Tab = MainTab:CreateGroupbox({
+		Name = "",
+		Column = 1,
+	})
+	
+	local function CanTeleport()
+		return Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+	end
+	
+	Tab:CreateButton({
+		Name = "虚空树",
+		Callback = function()
+			if CanTeleport() then
+				Player.Character:PivotTo(CFrame.new(1635, -1785, 1405))
+			end
+		end,
+	})
+	
+	Tab:CreateButton({
+		Name = "家",
+		Callback = function()
+			if CanTeleport() then
+				for i,v in workspace.World.Property:GetChildren() do
+					if v.Owner.Value == Player then
+						Player.Character:PivotTo(v:GetPivot())
+					end
+				end
+			end
+		end,
+	})
+
+
 
 	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
 		if TPItem and tpfpl.Character then
