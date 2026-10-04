@@ -164,11 +164,11 @@ local isnetworkowner = function(Part:Part)
 	if Part:IsA("Model") then
 		Part = Part.PrimaryPart
 	end
-	
+
 	if not Part or (Part.Anchored or Part:IsGrounded()) then
 		return false
 	end
-	
+
 	return Part.AssemblyRootPart.ReceiveAge == 0
 end
 
@@ -2341,12 +2341,96 @@ elseif MatchPlaceId(13042495892) then
 		end
 	end))
 elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
+	local scr = game:GetService("ReplicatedFirst"):FindFirstChild("Client")
+	local Client = require(scr)
+	
+	local Backpack = Client:RequestModule("Backpack")
+
+	local AutoCrit = {
+		Enabled = true,
+	}
+	
+	local function StartAutoCrit(ti)
+		if not AutoCrit.Enabled then return end
+		if not ti then return end
+
+		if ti._AutoCritConn then
+			ti._AutoCritConn:Disconnect()
+			ti._AutoCritConn = nil
+		end
+
+		if not ti.ChargeTween or not ti.SwingTime or ti.SwingTime <= 0 then
+			return
+		end
+
+		local lastProgress = 0
+
+		ti._AutoCritConn = RunService.Stepped:Connect(function(_, deltaTime)
+			if ti.Destroyed or not ti.CurrentlySwinging then
+				if ti._AutoCritConn then
+					ti._AutoCritConn:Disconnect()
+					ti._AutoCritConn = nil
+				end
+				return
+			end
+
+			if not ti.ChargeTween or not ti.SwingTime or ti.SwingTime <= 0 then
+				return
+			end
+
+			local progress = math.clamp(ti.ChargeTween.Value / ti.SwingTime, 0, 1)
+
+			for _, marker in ipairs(ti.HitMarkers or {}) do
+				if ti.HitMarkerHitMarks[marker] or ti.HitMarkerMissedMarks[marker] then
+					continue
+				end
+
+				local center = marker.Position.X.Scale
+				local halfWidth = marker.Size.X.Scale / 2
+
+				-- 只在中心附近触发
+				local nearCenter = math.abs(progress - center) <= halfWidth * 0.2
+
+				-- 或者这一帧跨过中心
+				local crossedCenter = (lastProgress < center and progress >= center)
+					or (lastProgress > center and progress <= center)
+
+				if nearCenter or crossedCenter then
+					local axe = Backpack.EquippedTool and Backpack.EquippedTool.Class
+					if axe
+						and axe.ActivelySwinging
+						and axe.SwingStartTime
+						and not axe.WaitingForHitMarkerData
+					then
+						axe:PrimaryActionStart()
+					end
+					break
+				end
+			end
+
+			lastProgress = progress
+		end)
+	end
+	
 	local TabSection = Window:CreateTabSection("橡树地")
 	local MainTab = TabSection:CreateTab({
 		Name = "主要",
 		Columns = 1,
 	})
-
+	
+	local Tab = MainTab:CreateGroupbox({
+		Name = "辅助",
+		Column = 1,
+	})
+	
+	Tab:CreateToggle({
+		Name = "自动暴击",
+		CurrentValue = AutoCrit.Enabled,
+		Callback = function(Value)
+			AutoCrit.Enabled = Value
+		end    
+	})
+	
 	local Tab = MainTab:CreateGroupbox({
 		Name = "透视",
 		Column = 1,
@@ -2462,9 +2546,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 	local Cache = {}
 	local Translator:Translator
-	
-	local scr = game:GetService("ReplicatedFirst"):FindFirstChild("Client")
-	local Client = require(scr)
+
 	local Translations = Client:RequestModule("Translations")
 
 	local function OakEsp(v,Color,Text,translate)
@@ -2523,6 +2605,11 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		end,
 	})
 	
+	local Tab = MainTab:CreateGroupbox({
+		Name = "其他",
+		Column = 1,
+	})
+	
 	Tab:CreateButton({
 		Name = "切换单人服",
 		Callback = function()
@@ -2532,21 +2619,21 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			Client:TellServer("PlaySolo")
 		end,
 	})
-	
+
 	local MainTab = TabSection:CreateTab({
 		Name = "传送",
 		Columns = 1,
 	})
-	
+
 	local Tab = MainTab:CreateGroupbox({
 		Name = "",
 		Column = 1,
 	})
-	
+
 	local function CanTeleport()
 		return Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
 	end
-	
+
 	Tab:CreateButton({
 		Name = "虚空树",
 		Callback = function()
@@ -2555,7 +2642,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end,
 	})
-	
+
 	Tab:CreateButton({
 		Name = "家",
 		Callback = function()
@@ -2570,6 +2657,31 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	})
 
 
+	local UI = Client:RequestModule("UI")
+
+	local originalCreateElement
+	originalCreateElement = hookfunction(UI.CreateElement,function(self,name,category)
+		local element = originalCreateElement(self, name, category)
+
+		if name == "ToolIndicator" then
+			local originalStart
+			originalStart = hookfunction(element.Start,function(self, SwingTime, data)
+				originalStart(self, SwingTime, data)
+				StartAutoCrit(self)
+			end)
+
+			local originalKill = element.Kill
+			function element:Kill(...)
+				if self._AutoCritConn then
+					self._AutoCritConn:Disconnect()
+					self._AutoCritConn = nil
+				end
+				return originalKill(self, ...)
+			end
+		end
+
+		return element
+	end)
 
 	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
 		if TPItem and tpfpl.Character then
