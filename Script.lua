@@ -2489,19 +2489,11 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Size = 50
 	}
 
-	local HRPSize = {}
-	
 	Tab:CreateToggle({
-		Name = "碰撞箱扩展",
+		Name = "攻击距离扩展",
 		CurrentValue = hitbox.Enabled,
 		Callback = function(Value)
 			hitbox.Enabled = Value
-			if not Value then
-				for HRP,Size in HRPSize do
-					HRP.Size = Size
-					HRPSize[HRP] = nil
-				end
-			end
 		end    
 	})
 	
@@ -2863,15 +2855,6 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		if EnemyEsp then
 			for i,v in workspace.World.Enemies:GetChildren() do
-				if hitbox.Enabled then
-					local HRP = v:FindFirstChild("HumanoidRootPart")
-					if HRP and not HRPSize[HRP] then
-						HRPSize[HRP] = HRP.Size
-						HRP.Size = Vector3.new(hitbox.Size,hitbox.Size,hitbox.Size)
-						HRP.Transparency = .5
-					end
-				end
-				
 				if v:GetAttribute("RequiresWeapon") then
 					if table.find(EspFilter.Enemy,"可抓捕") then
 						OakEsp(v,Color3.new(0.435294, 1, 0))
@@ -2884,6 +2867,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				
 				EspLib:UnwrapObject(v)
 			end
+		end
+		
+		if hitbox.Enabled then
+			local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
+			if not tool then return end
+			tool.HitRadius = hitbox.Size
 		end
 	end))
 end
