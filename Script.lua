@@ -111,14 +111,21 @@ local ScreenSize = workspace.CurrentCamera.ViewportSize
 
 if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
 	local sc = require(RF.Client)
-	if sc.GetModule then
+	if not sc.GetModule then
+		Player:Kick("游戏已更新！脚本过时")
+		return
+	end
+	
+	const tohook = getupvalue(sc.GetModule,1)
+	
+	if not ishooked(tohook) then
 		task.spawn(function()
 			StarterGui:SetCore("SendNotification",{
 				Title = "TDM",
 				Text = "已拦截第三方检测",
 			})
 		end)
-		local old;old = hookfunction(getupvalue(sc.GetModule,1),function()
+		hookfunction(tohook,function()
 			if checkcaller() then
 			end
 		end)
@@ -2343,13 +2350,13 @@ elseif MatchPlaceId(13042495892) then
 elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
 	local scr = game:GetService("ReplicatedFirst"):FindFirstChild("Client")
 	local Client = require(scr)
-	
+
 	local Backpack = Client:RequestModule("Backpack")
 
 	local AutoCrit = {
 		Enabled = true,
 	}
-	
+
 	local function StartAutoCrit(ti)
 		if not AutoCrit.Enabled then return end
 		if not ti then return end
@@ -2411,18 +2418,18 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			lastProgress = progress
 		end)
 	end
-	
+
 	local TabSection = Window:CreateTabSection("橡树地")
 	local MainTab = TabSection:CreateTab({
 		Name = "主要",
 		Columns = 1,
 	})
-	
+
 	local Tab = MainTab:CreateGroupbox({
 		Name = "辅助",
 		Column = 1,
 	})
-	
+
 	Tab:CreateToggle({
 		Name = "自动暴击",
 		CurrentValue = AutoCrit.Enabled,
@@ -2430,7 +2437,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			AutoCrit.Enabled = Value
 		end    
 	})
-	
+
 	local Tab = MainTab:CreateGroupbox({
 		Name = "透视",
 		Column = 1,
@@ -2604,12 +2611,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			tpfpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
-	
+
 	local Tab = MainTab:CreateGroupbox({
 		Name = "其他",
 		Column = 1,
 	})
-	
+
 	Tab:CreateButton({
 		Name = "切换单人服",
 		Callback = function()
@@ -2633,16 +2640,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	local function CanTeleport()
 		return Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
 	end
-
-	Tab:CreateButton({
-		Name = "虚空树",
-		Callback = function()
-			if CanTeleport() then
-				Player.Character:PivotTo(CFrame.new(1635, -1785, 1405))
-			end
-		end,
-	})
-
+	
 	Tab:CreateButton({
 		Name = "家",
 		Callback = function()
@@ -2656,6 +2654,41 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		end,
 	})
 
+	Tab:CreateButton({
+		Name = "虚空树",
+		Callback = function()
+			if CanTeleport() then
+				Player.Character:PivotTo(CFrame.new(1635, -1785, 1405))
+			end
+		end,
+	})
+	
+	Tab:CreateButton({
+		Name = "雪树",
+		Callback = function()
+			if CanTeleport() then
+				Player.Character:PivotTo(CFrame.new(-7275, 1225, -3615))
+			end
+		end,
+	})
+
+	Tab:CreateButton({
+		Name = "彩虹树",
+		Callback = function()
+			if CanTeleport() then
+				Player.Character:PivotTo(CFrame.new(-614, 5450, 83))
+			end
+		end,
+	})
+	
+	Tab:CreateButton({
+		Name = "月球",
+		Callback = function()
+			if CanTeleport() then
+				Player.Character:PivotTo(CFrame.new(-820, 20300, 900))
+			end
+		end,
+	})
 
 	local UI = Client:RequestModule("UI")
 
