@@ -2667,9 +2667,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				for i,v in workspace.World.LooseItems:GetChildren() do
 					EspLib:UnwrapObject(v)
 				end
+				for i,v in workspace.World.MiscPrefabs:GetChildren() do
+					EspLib:UnwrapObject(v)
+				end
 			end
 		end,
 	})
+	local NoOnwer = true
 	Tab:CreateDropdown({
 		Name = "过滤",
 		Options = StringOptions.Items,
@@ -2680,7 +2684,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			EspFilter.Items = Options
 		end,
 	})
-
+	Tab:CreateToggle({
+		Name = "只显示无主/自己的掉落物",
+		CurrentValue = NoOnwer,
+		Callback = function(Value)
+			NoOnwer = Value
+		end,
+	})
 
 	local Tab = MainTab:CreateGroupbox({
 		Name = "运输",
@@ -2968,7 +2978,24 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		end
 		
 		if ItemEsp then
+			if table.find(EspFilter.Items,"星星") then
+				for i,v in workspace.World.MiscPrefabs:GetChildren() do
+					if v.Name == "Star" then
+						_ItemEsp(v,"星星")
+					end
+				end
+			end
+			
 			for i,v in workspace.World.LooseItems:GetChildren() do
+				if NoOnwer then
+					if v:FindFirstChild("Owner") then
+						if v.Owner.Value ~= nil and v.Owner.Value ~= Player then
+							EspLib:UnwrapObject(v)
+							continue
+						end
+					end
+				end
+				
 				local Type = CheckType(v)
 				if table.find(EspFilter.Items,Type) then
 					_ItemEsp(v,Type)
