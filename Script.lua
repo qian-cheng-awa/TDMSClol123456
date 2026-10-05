@@ -330,6 +330,39 @@ function UnNoClip()
 	NoclipParts = {}
 end
 
+local Notouching
+local NotouchingParts = {}
+local Touch = true
+
+function DisibleCanTouched()
+	pcall(function() Notouching:Disconnect() end)
+	Touch = false
+	task.wait(0.1)
+	NotouchingParts = {}
+	Notouching = RunService.Stepped:Connect(function()
+		if Touch == false and Player.Character ~= nil then
+			for _, child in pairs(Player.Character:GetDescendants()) do
+				if child:IsA("BasePart") and child.CanCollide then
+					child.CanTouch = false
+					NotouchingParts[child] = true
+				end
+			end
+		end
+	end)
+end
+
+function EnabledCanTouched()
+	pcall(function() Notouching:Disconnect() end)
+	Touch = true
+	task.wait(0.1)
+	for child, _ in pairs(NotouchingParts) do
+		if typeof(child) == "Instance" and child:IsA("BasePart") and child.Parent then
+			child.CanTouch = true
+		end
+	end
+	NotouchingParts = {}
+end
+
 
 iyflyspeed = 5
 local flyKeyDown,flyKeyUp
@@ -1111,6 +1144,19 @@ Groupbox:CreateToggle({
 		end
 	end    
 })
+
+Groupbox:CreateToggle({
+	Name = "无碰撞",
+	CurrentValue = false,
+	Callback = function(Value)
+		if Value then
+			DisibleCanTouched()
+		else
+			EnabledCanTouched()
+		end
+	end    
+})
+
 
 local Groupbox = MainTab:CreateGroupbox({
 	Name = "飞行",
@@ -2437,6 +2483,39 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			AutoCrit.Enabled = Value
 		end    
 	})
+	
+	local hitbox = {
+		Enabled = true,
+		Size = 50
+	}
+
+	local HRPSize = {}
+	
+	Tab:CreateToggle({
+		Name = "碰撞箱扩展",
+		CurrentValue = hitbox.Enabled,
+		Callback = function(Value)
+			hitbox.Enabled = Value
+			if not Value then
+				for HRP,Size in HRPSize do
+					HRP.Size = Size
+					HRPSize[HRP] = nil
+				end
+			end
+		end    
+	})
+	
+	Tab:CreateSlider({
+		Name = "扩展大小",
+		Range = {0, 1000},
+		CurrentValue = hitbox.Size,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Suffix = "Studs",
+		Callback = function(Value)
+			hitbox.Size = Value
+		end    
+	})
 
 	local Tab = MainTab:CreateGroupbox({
 		Name = "透视",
@@ -2716,6 +2795,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		return element
 	end)
 
+
 	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
 		if TPItem and tpfpl.Character then
 			for i,v in workspace.World.LooseItems:GetChildren() do
@@ -2783,17 +2863,26 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		if EnemyEsp then
 			for i,v in workspace.World.Enemies:GetChildren() do
+				if hitbox.Enabled then
+					local HRP = v:FindFirstChild("HumanoidRootPart")
+					if HRP and not HRPSize[HRP] then
+						HRPSize[HRP] = HRP.Size
+						HRP.Size = Vector3.new(hitbox.Size,hitbox.Size,hitbox.Size)
+						HRP.Transparency = .5
+					end
+				end
+				
 				if v:GetAttribute("RequiresWeapon") then
 					if table.find(EspFilter.Enemy,"可抓捕") then
 						OakEsp(v,Color3.new(0.435294, 1, 0))
-					else
-						EspLib:UnwrapObject(v)
+						continue
 					end
 				elseif table.find(EspFilter.Enemy,"普通") then
 					OakEsp(v,Color3.new(1,0,0))
-				else
-					EspLib:UnwrapObject(v)
+					continue
 				end
+				
+				EspLib:UnwrapObject(v)
 			end
 		end
 	end))
