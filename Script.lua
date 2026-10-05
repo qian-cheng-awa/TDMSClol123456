@@ -2484,28 +2484,63 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		end    
 	})
 	
-	local hitbox = {
-		Enabled = true,
-		Size = 50
+	local tooledit = {
+		hitbox = {
+			Enabled = true,
+			Value = 50
+		},
+		Cooldown = {
+			Enabled = true,
+			Value = .1
+		},
+		AutoUse = false
 	}
 
 	Tab:CreateToggle({
 		Name = "攻击距离扩展",
-		CurrentValue = hitbox.Enabled,
+		CurrentValue = tooledit.hitbox.Enabled,
 		Callback = function(Value)
-			hitbox.Enabled = Value
+			tooledit.hitbox.Enabled = Value
 		end    
 	})
 	
 	Tab:CreateSlider({
 		Name = "扩展大小",
 		Range = {0, 1000},
-		CurrentValue = hitbox.Size,
+		CurrentValue = tooledit.hitbox.Value,
 		Color = Color3.fromRGB(255,255,255),
 		Increment = 1,
 		Suffix = "Studs",
 		Callback = function(Value)
-			hitbox.Size = Value
+			tooledit.hitbox.Value = Value
+		end    
+	})
+	
+	Tab:CreateToggle({
+		Name = "工具冷却编辑",
+		CurrentValue = tooledit.Cooldown.Enabled,
+		Callback = function(Value)
+			tooledit.Cooldown.Enabled = Value
+		end    
+	})
+
+	Tab:CreateSlider({
+		Name = "冷却",
+		Range = {0, 10},
+		CurrentValue = tooledit.Cooldown.Value,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = .01,
+		Suffix = "秒",
+		Callback = function(Value)
+			tooledit.Cooldown.Value = Value
+		end    
+	})
+	
+	Tab:CreateToggle({
+		Name = "自动使用工具",
+		CurrentValue = tooledit.AutoUse,
+		Callback = function(Value)
+			tooledit.AutoUse = Value
 		end    
 	})
 
@@ -2869,10 +2904,18 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end
 		
-		if hitbox.Enabled then
-			local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
-			if not tool then return end
-			tool.HitRadius = hitbox.Size
+		local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
+		if tool then
+			if tooledit.hitbox.Enabled and tool.HitRadius then
+				tool.HitRadius = tooledit.hitbox.Value
+			end
+			if tooledit.Cooldown.Enabled and tool.Cooldown then
+				tool.Cooldown = tooledit.Cooldown.Value
+			end
+			if tooledit.AutoUse then
+				tool:PrimaryActionStart()
+			end
 		end
+		
 	end))
 end
