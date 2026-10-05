@@ -2552,11 +2552,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	TreeEsp = false
 	OreEsp = false
 	EnemyEsp = false
+	ItemEsp = false
 
 	local EspFilter = {
 		Tree = {},
 		Ore = {},
-		Enemy = {}
+		Enemy = {},
+		Items = {},
 	}
 
 	Tab:CreateToggle({
@@ -2582,6 +2584,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Trees = {},
 		Ores = {},
 		Enemies = {"普通","可抓捕"},
+		Items = {"工具","宠物","星星","树","木板","矿","岩石","水果","结构","其他"}
 	}
 
 	for i,v in workspace.World.TreeRegions:GetChildren() do
@@ -2655,38 +2658,29 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			EspFilter.Enemy = Options
 		end,
 	})
-
-
-	local Cache = {}
-	local Translator:Translator
-
-	local Translations = Client:RequestModule("Translations")
-
-	local function OakEsp(v,Color,Text,translate)
-		Text = Text or v.Name
-
-		if translate then
-			if not Translator then
-				Translator = LocalizationService:GetTranslatorForPlayer(Player)
+	Tab:CreateToggle({
+		Name = "掉落物",
+		CurrentValue = ItemEsp,
+		Callback = function(Value)
+			ItemEsp = Value
+			if not Value then
+				for i,v in workspace.World.LooseItems:GetChildren() do
+					EspLib:UnwrapObject(v)
+				end
 			end
+		end,
+	})
+	Tab:CreateDropdown({
+		Name = "过滤",
+		Options = StringOptions.Items,
+		CurrentOption = StringOptions.Items,
+		MultipleOptions = true,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			EspFilter.Items = Options
+		end,
+	})
 
-			if not Cache[Text] then
-				local FinalName = Translations:GetTranslation(
-					Text
-				)
-				local sourceTranslation = Translator:Translate(game, FinalName)
-				Cache[Text] = sourceTranslation
-			end
-
-			Text = Cache[Text]
-		end
-
-		EspLib:WrapObject({
-			Object = v,
-			DisplayText = Text,
-			Color = Color or Color3.new(1,1,1),
-		})
-	end
 
 	local Tab = MainTab:CreateGroupbox({
 		Name = "运输",
@@ -2821,7 +2815,78 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		return element
 	end)
+	local Cache = {}
+	local Translator:Translator
 
+	local Translations = Client:RequestModule("Translations")
+
+	local function OakEsp(v,Color,Text,translate,infos)
+		Text = Text or v:GetAttribute("AltName") or v.Name
+
+		if translate then
+			if not Translator then
+				Translator = LocalizationService:GetTranslatorForPlayer(Player)
+			end
+
+			if not Cache[Text] then
+				local FinalName = Translations:GetTranslation(
+					Text
+				)
+				local sourceTranslation = Translator:Translate(game, FinalName)
+				Cache[Text] = sourceTranslation
+			end
+
+			Text = Cache[Text]
+		end
+
+		EspLib:WrapObject({
+			Object = v,
+			DisplayText = Text,
+			Color = Color or Color3.new(1,1,1),
+			Infos = infos,
+		})
+	end
+	
+	local function CheckType(LooseItem:Instance)
+		if LooseItem:GetAttribute("Fruit") then	return "水果" end
+		
+		local Name = LooseItem.Name
+		
+		if Name == "LooseTree" then return "树" end
+		if Name == "Ore" then return "矿" end
+		if Name == "Rock" then return "岩石" end
+		if Name == "RoughPlank" or Name == "SmoothPlank" then return "木板" end
+		if Name == "Star" then return "星星" end
+		
+		local Interaction = LooseItem:FindFirstChild("Interaction")
+		
+		if Interaction then
+			if Interaction:FindFirstChild("equip_creature") then return "宠物" end
+			if Interaction:FindFirstChild("pickup_item") then return "工具"end
+			if Interaction:FindFirstChild("unbox_structure") then return "结构" end
+		end
+		
+		return "其他"
+	end
+	
+	local function _ItemEsp(Item:Instance,Type)
+		local Color = Color3.new(1,1,.5)
+		local Infos = {
+			{
+				Text = Type,
+				Color = Color3.new(.5,.5,.5),
+			}
+		}
+		if Type == "树" or Type == "矿" or Type == "木板" or Type == "岩石" then Color = Color3.new(1,1,0) end
+		if Type == "宠物" then Color = Color3.new(0,1,.5) end
+		if Type == "工具" then Color = Color3.new(1,0,1) end
+		if Type == "结构" then Color = Color3.new(0,0,1) end
+		if Type == "水果" then Color = Color3.new(1, 0.5, 0.5) end
+		if Type == "其他" then Color = Color3.new(1,1,1) end
+		if Type == "星星" then Color = Color3.new(1, 1, 0.5) end
+		
+		OakEsp(Item,Color,nil,true,Infos)
+	end
 
 	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
 		if TPItem and tpfpl.Character then
@@ -2858,9 +2923,8 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				if v:FindFirstChild("Tree") then
 					for _,v in v:GetChildren() do
 						if v.Name == "Tree" then
-							local Name2 = v:GetAttribute("AltName")
 							if table.find(EspFilter.Tree,Name) then
-								OakEsp(v,Color3.new(1, 0.584314, 0),Name2,true)
+								OakEsp(v,Color3.new(1, 0.584314, 0),nil,true)
 							else
 								EspLib:UnwrapObject(v)
 							end
@@ -2876,9 +2940,8 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				if v:FindFirstChild("") then
 					for _,v in v:GetChildren() do
 						if v.Name == "" then
-							local Name2 = v:GetAttribute("AltName")
 							if table.find(EspFilter.Ore,Name) then
-								OakEsp(v,Color3.new(0.478431, 0.478431, 0.478431),Name2,true)
+								OakEsp(v,Color3.new(0.478431, 0.478431, 0.478431),nil,true)
 							else
 								EspLib:UnwrapObject(v)
 							end
@@ -2900,6 +2963,17 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 					continue
 				end
 				
+				EspLib:UnwrapObject(v)
+			end
+		end
+		
+		if ItemEsp then
+			for i,v in workspace.World.LooseItems:GetChildren() do
+				local Type = CheckType(v)
+				if table.find(EspFilter.Items,Type) then
+					_ItemEsp(v,Type)
+					continue
+				end
 				EspLib:UnwrapObject(v)
 			end
 		end
