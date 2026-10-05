@@ -2909,8 +2909,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			if tooledit.hitbox.Enabled and tool.HitRadius then
 				tool.HitRadius = tooledit.hitbox.Value
 			end
-			if tooledit.Cooldown.Enabled and tool.Cooldown then
-				tool.Cooldown = tooledit.Cooldown.Value
+			if tooledit.Cooldown.Enabled then
+				if tool.Cooldown then
+					tool.Cooldown = tooledit.Cooldown.Value
+				end
+				if tool.SwingTime then
+					tool.SwingTime = tooledit.Cooldown.Value
+				end
 			end
 			if tooledit.AutoUse then
 				tool:PrimaryActionStart()
