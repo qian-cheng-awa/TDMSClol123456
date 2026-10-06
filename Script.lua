@@ -115,9 +115,9 @@ if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("
 		Player:Kick("游戏已更新！脚本过时")
 		return
 	end
-	
+
 	const tohook = getupvalue(sc.GetModule,1)
-	
+
 	if not ishooked(tohook) then
 		task.spawn(function()
 			StarterGui:SetCore("SendNotification",{
@@ -2483,7 +2483,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			AutoCrit.Enabled = Value
 		end    
 	})
-	
+
 	local tooledit = {
 		hitbox = {
 			Enabled = true,
@@ -2503,10 +2503,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			tooledit.hitbox.Enabled = Value
 		end    
 	})
-	
+
 	Tab:CreateSlider({
 		Name = "扩展大小",
-		Range = {0, 1000},
+		Range = {0, 3000},
 		CurrentValue = tooledit.hitbox.Value,
 		Color = Color3.fromRGB(255,255,255),
 		Increment = 1,
@@ -2515,7 +2515,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			tooledit.hitbox.Value = Value
 		end    
 	})
-	
+
 	Tab:CreateToggle({
 		Name = "工具冷却编辑",
 		CurrentValue = tooledit.Cooldown.Enabled,
@@ -2535,7 +2535,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			tooledit.Cooldown.Value = Value
 		end    
 	})
-	
+
 	Tab:CreateToggle({
 		Name = "自动使用工具",
 		CurrentValue = tooledit.AutoUse,
@@ -2750,7 +2750,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	local function CanTeleport()
 		return Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
 	end
-	
+
 	Tab:CreateButton({
 		Name = "家",
 		Callback = function()
@@ -2772,7 +2772,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end,
 	})
-	
+
 	Tab:CreateButton({
 		Name = "雪树",
 		Callback = function()
@@ -2790,7 +2790,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end,
 	})
-	
+
 	Tab:CreateButton({
 		Name = "月球",
 		Callback = function()
@@ -2856,29 +2856,29 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			Infos = infos,
 		})
 	end
-	
+
 	local function CheckType(LooseItem:Instance)
 		if LooseItem:GetAttribute("Fruit") then	return "水果" end
-		
+
 		local Name = LooseItem.Name
-		
+
 		if Name == "LooseTree" then return "树" end
 		if Name == "Ore" then return "矿" end
 		if Name == "Rock" then return "岩石" end
 		if Name == "RoughPlank" or Name == "SmoothPlank" then return "木板" end
 		if Name == "Star" then return "星星" end
-		
+
 		local Interaction = LooseItem:FindFirstChild("Interaction")
-		
+
 		if Interaction then
 			if Interaction:FindFirstChild("equip_creature") then return "宠物" end
 			if Interaction:FindFirstChild("pickup_item") then return "工具"end
 			if Interaction:FindFirstChild("unbox_structure") then return "结构" end
 		end
-		
+
 		return "其他"
 	end
-	
+
 	local function _ItemEsp(Item:Instance,Type)
 		local Color = Color3.new(1,1,.5)
 		local Infos = {
@@ -2894,7 +2894,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		if Type == "水果" then Color = Color3.new(1, 0.5, 0.5) end
 		if Type == "其他" then Color = Color3.new(1,1,1) end
 		if Type == "星星" then Color = Color3.new(1, 1, 0.5) end
-		
+
 		OakEsp(Item,Color,nil,true,Infos)
 	end
 
@@ -2960,23 +2960,63 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			end
 		end
+		
+		local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
+		local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
 
-		if EnemyEsp then
-			for i,v in workspace.World.Enemies:GetChildren() do
-				if v:GetAttribute("RequiresWeapon") then
-					if table.find(EspFilter.Enemy,"可抓捕") then
-						OakEsp(v,Color3.new(0.435294, 1, 0))
-						continue
-					end
-				elseif table.find(EspFilter.Enemy,"普通") then
-					OakEsp(v,Color3.new(1,0,0))
-					continue
+		if EnemyEsp or tooledit.AutoUse then
+			local enemies = workspace:FindFirstChild("World") and workspace.World:FindFirstChild("Enemies")
+
+			if enemies then
+				local hitRadius = tool and tool.HitRadius
+
+				local function canAutoUse(targetHRP)
+					return tool
+						and tooledit.AutoUse
+						and targetHRP
+						and HRP
+						and hitRadius
+						and (targetHRP.Position - HRP.Position).Magnitude < hitRadius
 				end
 				
-				EspLib:UnwrapObject(v)
+				local USE = false
+
+				for _, v in ipairs(enemies:GetChildren()) do
+					local vHRP = v:FindFirstChild("HumanoidRootPart")
+					local requiresWeapon = v:GetAttribute("RequiresWeapon")
+
+					if requiresWeapon then
+						if canAutoUse(vHRP) then
+							local toolType = tool.WeaponType
+							if toolType == requiresWeapon then
+								USE = true
+							end
+						end
+
+						if table.find(EspFilter.Enemy, "可抓捕") then
+							OakEsp(v, Color3.new(0.435294, 1, 0))
+							continue
+						end
+					else
+						if canAutoUse(vHRP) then
+							USE = true
+						end
+						
+						if table.find(EspFilter.Enemy, "普通") then
+							OakEsp(v, Color3.new(1, 0, 0))
+						end
+						continue
+					end
+
+					EspLib:UnwrapObject(v)
+				end
+				
+				if USE then
+					tool:PrimaryActionStart()
+				end
 			end
 		end
-		
+
 		if ItemEsp then
 			if table.find(EspFilter.Items,"星星") then
 				for i,v in workspace.World.MiscPrefabs:GetChildren() do
@@ -2985,7 +3025,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 					end
 				end
 			end
-			
+
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if NoOnwer then
 					if v:FindFirstChild("Owner") then
@@ -2995,7 +3035,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 						end
 					end
 				end
-				
+
 				local Type = CheckType(v)
 				if table.find(EspFilter.Items,Type) then
 					_ItemEsp(v,Type)
@@ -3004,24 +3044,18 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				EspLib:UnwrapObject(v)
 			end
 		end
+
 		
-		local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
 		if tool then
-			if tooledit.hitbox.Enabled and tool.HitRadius then
-				tool.HitRadius = tooledit.hitbox.Value
+			if tool.HitRadius then
+				if tooledit.hitbox.Enabled then tool.HitRadius = tooledit.hitbox.Value end
 			end
+			
 			if tooledit.Cooldown.Enabled then
-				if tool.Cooldown then
-					tool.Cooldown = tooledit.Cooldown.Value
-				end
-				if tool.SwingTime then
-					tool.SwingTime = tooledit.Cooldown.Value
-				end
-			end
-			if tooledit.AutoUse then
-				tool:PrimaryActionStart()
+				if tool.Cooldown then tool.Cooldown = tooledit.Cooldown.Value end
+				if tool.SwingTime then tool.SwingTime = tooledit.Cooldown.Value end
 			end
 		end
-		
+
 	end))
 end
