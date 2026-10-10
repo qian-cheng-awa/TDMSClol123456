@@ -1943,17 +1943,17 @@ if MatchPlaceId(6520999642) then
 
 	local DTB = {}
 	local offset = 0
-	local function TaskDelay(T,Callback)
+	local function TaskDelay(T, Callback)
 		local Runned = 0
-		local a;a = RunService.PreSimulation:Connect(function(dt)
-			Runned += dt
-			if Runned >= T or Runned + dt/2 >= T then
+		local conn
+		conn = RunService.PreSimulation:Connect(function(dt)
+			if Runned + dt/2 >= T then
+				conn:Disconnect()
 				Callback()
-				a:Disconnect()
 			end
+			Runned += dt
 		end)
 	end
-
 	local function Refresh()
 		local s = Player.PlayerGui.Main.FNFMain.Modules.songPlay
 		local a = require(s)
