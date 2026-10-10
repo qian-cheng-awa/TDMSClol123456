@@ -1981,7 +1981,7 @@ if MatchPlaceId(6520999642) then
 					KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
 					UserInputType = Enum.UserInputType.Keyboard,
 				}
-				TaskDelay(1.9+offset,function()
+				TaskDelay(1.985+offset,function()
 					KeyPress(InputK,false)
 
 					task.wait(Ln)
