@@ -1942,12 +1942,12 @@ if MatchPlaceId(6520999642) then
 	local BotPlay = false
 
 	local DTB = {}
-
+	local offset = 0
 	local function TaskDelay(T,Callback)
 		local Runned = 0
 		local a;a = RunService.PreSimulation:Connect(function(dt)
 			Runned += dt
-			if Runned >= T or Runned + dt >= T then
+			if Runned >= T or Runned + dt/2 >= T then
 				Callback()
 				a:Disconnect()
 			end
@@ -2025,6 +2025,18 @@ if MatchPlaceId(6520999642) then
 		Callback = function(Value)
 			BotPlay = Value
 		end    
+	})
+	
+	Tab:CreateSlider({
+		Name = "偏移",
+		Range = {-500, 500},
+		CurrentValue = offset,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Suffix = "毫秒",
+		Callback = function(Value)
+			offset = Value
+		end
 	})
 
 	Refresh()
