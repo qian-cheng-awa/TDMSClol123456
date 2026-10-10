@@ -1981,7 +1981,7 @@ if MatchPlaceId(6520999642) then
 					KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
 					UserInputType = Enum.UserInputType.Keyboard,
 				}
-				TaskDelay(1.985+offset,function()
+				TaskDelay(1.985+offset/1000,function()
 					KeyPress(InputK,false)
 
 					task.wait(Ln)
@@ -2033,7 +2033,7 @@ if MatchPlaceId(6520999642) then
 		CurrentValue = offset,
 		Color = Color3.fromRGB(255,255,255),
 		Increment = 1,
-		Suffix = "毫秒",
+		Suffix = "| 毫秒",
 		Callback = function(Value)
 			offset = Value
 		end
