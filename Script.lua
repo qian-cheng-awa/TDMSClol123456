@@ -1948,7 +1948,7 @@ if MatchPlaceId(6520999642) then
 		local conn
 		conn = RunService.PreSimulation:Connect(function(dt)
 			Runned += dt
-			if Runned - dt/2 >= T then
+			if Runned + dt/2 >= T then
 				conn:Disconnect()
 				Callback()
 			end
