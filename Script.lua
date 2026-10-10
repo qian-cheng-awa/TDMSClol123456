@@ -1100,9 +1100,45 @@ local MainTab = TabSection:CreateTab({
 })
 
 local Groupbox = MainTab:CreateGroupbox({
-	Name = "加速",
+	Name = "",
 	Column = 1,
 })
+local antikick = false
+Groupbox:CreateToggle({
+	Name = "防踢",
+	CurrentValue = antikick,
+	Callback = function(Value)
+		antikick = Value
+	end    
+})
+
+local oldkick;oldkick = hookfunction(Player.Kick,function(self,message)
+	if self == Player then
+		if antikick then
+			StarterGui:SetCore("SendNotification",{
+				Title = "TDM",
+				Text = "已拦截本地踢出："..tostring(message or "没有踢出信息"),
+			})
+			return
+		end
+	end
+	return oldkick(self,message)
+end)
+
+local oldkicknamecall
+oldkicknamecall = hookmetamethod(game,"__namecall",function(self,...)
+	local namecallmethod = string.lower(getnamecallmethod())
+	if namecallmethod == "kick" and self == Player then
+		if antikick then
+			StarterGui:SetCore("SendNotification",{
+				Title = "TDM",
+				Text = "已拦截本地踢出："..tostring((...) or "没有踢出信息"),
+			})
+			return
+		end
+	end
+	return oldkicknamecall(self,...)
+end)
 
 local CFrameSpeed = 2
 
@@ -2960,7 +2996,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			end
 		end
-		
+
 		local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
 		local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
 
@@ -2978,7 +3014,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 						and hitRadius
 						and (targetHRP.Position - HRP.Position).Magnitude < hitRadius
 				end
-				
+
 				local USE = false
 
 				for _, v in ipairs(enemies:GetChildren()) do
@@ -3001,7 +3037,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 						if canAutoUse(vHRP) then
 							USE = true
 						end
-						
+
 						if table.find(EspFilter.Enemy, "普通") then
 							OakEsp(v, Color3.new(1, 0, 0))
 						end
@@ -3010,7 +3046,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 					EspLib:UnwrapObject(v)
 				end
-				
+
 				if USE then
 					tool:PrimaryActionStart()
 				end
@@ -3045,12 +3081,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end
 
-		
+
 		if tool then
 			if tool.HitRadius then
 				if tooledit.hitbox.Enabled then tool.HitRadius = tooledit.hitbox.Value end
 			end
-			
+
 			if tooledit.Cooldown.Enabled then
 				if tool.Cooldown then tool.Cooldown = tooledit.Cooldown.Value end
 				if tool.SwingTime then tool.SwingTime = tooledit.Cooldown.Value end
