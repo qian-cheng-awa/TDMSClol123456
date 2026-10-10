@@ -1947,11 +1947,11 @@ if MatchPlaceId(6520999642) then
 		local Runned = 0
 		local conn
 		conn = RunService.PreSimulation:Connect(function(dt)
-			if Runned + dt/2 >= T then
+			Runned += dt
+			if Runned - dt/2 >= T then
 				conn:Disconnect()
 				Callback()
 			end
-			Runned += dt
 		end)
 	end
 	local function Refresh()
@@ -1981,7 +1981,7 @@ if MatchPlaceId(6520999642) then
 					KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
 					UserInputType = Enum.UserInputType.Keyboard,
 				}
-				TaskDelay(2,function()
+				TaskDelay(1.9+offset,function()
 					KeyPress(InputK,false)
 
 					task.wait(Ln)
