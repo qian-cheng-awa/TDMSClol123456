@@ -1955,7 +1955,7 @@ if MatchPlaceId(6520999642) then
 	end
 
 	local function Refresh()
-		local s = Player.PlayerGui.Main.FNFMain.songPlay
+		local s = Player.PlayerGui.Main.FNFMain.Modules.songPlay
 		local a = require(s)
 
 		local CreateNote
@@ -1971,7 +1971,7 @@ if MatchPlaceId(6520999642) then
 
 		local KeyPress = getsenv(s).KeyPress
 		local KeyLift = getsenv(s).KeyLift
-		local Inputs = getsenv(Player.PlayerGui.Main.FNFMain.songPlay)._G.Settings.Inputs
+		local Inputs = getsenv(s)._G.Settings.Inputs
 
 		local function InputArrow(args)
 			coroutine.wrap(function()
