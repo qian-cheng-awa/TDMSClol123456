@@ -3025,12 +3025,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			
 			local CurrentPosition = Player.Character:GetPivot()
 			
-			Player.Character:PivotTo(CFrame)
-			
 			teleported = true
 			
 			local ball = tool.DraggingBall
 			if not ball then return end
+			
+			Player.Character:PivotTo(CFrame)
 			
 			ball:PivotTo(CFrame)
 			ball.AlignPosition.Position = CFrame.Position
