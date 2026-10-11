@@ -3020,22 +3020,22 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	
 		
 		local function TpDragger(CFrame)
-			if teleported then return end
-			if not tool.IsDragging then return end
-			
-			local CurrentPosition = Player.Character:GetPivot()
-			
 			local ball = tool.DraggingBall
 			if not ball then return end
 			
+			if not tool.IsDragging then return end
+			
+			tool.LastRayRes = CFrame.Position
+			tool:UpdatePosition()
+			
+			ball:PivotTo(CFrame)
+			
+			if teleported then return end
+			
+			local CurrentPosition = Player.Character:GetPivot()
 			teleported = true
 			
 			Player.Character:PivotTo(CFrame)
-			
-			ball:PivotTo(CFrame)
-			if ball:FindFirstChild("AlignPosition") then
-				ball.AlignPosition.Position = CFrame.Position
-			end
 			
 			task.wait(2)
 			
