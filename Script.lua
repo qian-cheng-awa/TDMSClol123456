@@ -1942,20 +1942,20 @@ if MatchPlaceId(6520999642) then
 	local BotPlay = false
 
 	local DTB = {}
-	local offset = 0
-	local function TaskDelay(T, Callback)
+
+	local function TaskDelay(T,Callback)
 		local Runned = 0
-		local conn
-		conn = RunService.PreSimulation:Connect(function(dt)
+		local a;a = RunService.PreSimulation:Connect(function(dt)
 			Runned += dt
-			if Runned + dt/2 >= T then
-				conn:Disconnect()
+			if Runned >= T then
 				Callback()
+				a:Disconnect()
 			end
 		end)
 	end
+
 	local function Refresh()
-		local s = Player.PlayerGui.Main.FNFMain.Modules.songPlay
+		local s = Player.PlayerGui.Main.FNFMain.songPlay
 		local a = require(s)
 
 		local CreateNote
@@ -1971,7 +1971,7 @@ if MatchPlaceId(6520999642) then
 
 		local KeyPress = getsenv(s).KeyPress
 		local KeyLift = getsenv(s).KeyLift
-		local Inputs = getsenv(s)._G.Settings.Inputs
+		local Inputs = getsenv(Player.PlayerGui.Main.FNFMain.songPlay)._G.Settings.Inputs
 
 		local function InputArrow(args)
 			coroutine.wrap(function()
@@ -1981,7 +1981,7 @@ if MatchPlaceId(6520999642) then
 					KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
 					UserInputType = Enum.UserInputType.Keyboard,
 				}
-				TaskDelay(2+offset/1000,function()
+				TaskDelay(1.985,function()
 					KeyPress(InputK,false)
 
 					task.wait(Ln)
@@ -2025,18 +2025,6 @@ if MatchPlaceId(6520999642) then
 		Callback = function(Value)
 			BotPlay = Value
 		end    
-	})
-	
-	Tab:CreateSlider({
-		Name = "偏移",
-		Range = {-500, 500},
-		CurrentValue = offset,
-		Color = Color3.fromRGB(255,255,255),
-		Increment = 1,
-		Suffix = "| 毫秒",
-		Callback = function(Value)
-			offset = Value
-		end
 	})
 
 	Refresh()
@@ -2769,6 +2757,84 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			tpfpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
+	
+	local TPItemToPoint = false
+	local PointName = ""
+	local tppoint
+	
+	local function GetPoints()
+		if not isfolder("OaklandsPoints") then
+			makefolder("OaklandsPoints")
+		end
+
+		local Files = listfiles("OaklandsPoints")
+
+		for i,v in pairs(Files) do
+			Files[i] = string.gsub(v,"OaklandsPoints/","",1)
+		end
+		
+		return Files
+	end
+	
+	local md = Tab:CreateDropdown({
+		Name = "选择锚点",
+		Options = GetPoints(),
+		CurrentOption = {},
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			local FileName = Options[1]
+			
+			if FileName then
+				local FileContents = readfile(`OaklandsPoints/{FileName}`)
+				
+				if FileContents and FileContents ~= "" then
+					local xyz = string.split(FileContents,",")
+					
+					local x,y,z = tonumber(xyz[1]),tonumber(xyz[2]),tonumber(xyz[3])
+					tppoint = CFrame.new(x,y,z)
+				end
+			end
+		end,
+	})
+	
+	Tab:CreateButton({
+		Name = "刷新",
+		Callback = function()
+			md:Set({Options = GetPoints()})
+		end,
+	})
+	
+	Tab:CreateToggle({
+		Name = "运输物品到锚点",
+		CurrentValue = TPItemToPoint,
+		Callback = function(Value)
+			TPItemToPoint = Value
+		end,
+	})
+	
+	Tab:CreateInput({
+		Name = "锚点名字",
+		CurrentValue = PointName,
+		PlaceholderText = "",
+		Callback = function(Text)
+			PointName = Text
+		end,
+	})
+	
+	local function CanTeleport()
+		return Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+	end
+
+	Tab:CreateButton({
+		Name = "保存锚点",
+		Callback = function()
+			if PointName ~= "" and CanTeleport() then
+				writefile(`OaklandsPoints/{PointName}.cfg`,tostring(Player.Character.HumanoidRootPart.Position))
+				
+				md:Set({Options = GetPoints()})
+			end
+		end,
+	})
 
 	local Tab = MainTab:CreateGroupbox({
 		Name = "其他",
@@ -2795,9 +2861,6 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Column = 1,
 	})
 
-	local function CanTeleport()
-		return Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-	end
 
 	Tab:CreateButton({
 		Name = "家",
@@ -2947,14 +3010,9 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	end
 
 	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
-		if TPItem and tpfpl.Character then
+		if TPItem and tpfpl then
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
-					local p = v
-					if v:IsA("Model") then
-						p = v.PrimaryPart
-					end
-
 					local filter = workspace.World.Structures:QueryDescendants(`#1x1StorageDrawer[$Text = {v.Name}]:has(#Owner)`)
 					if #filter == 0 then
 						filter = workspace.World.Structures:QueryDescendants(`#1x1StorageDrawer[$Text = Here]:has(#Owner)`)
@@ -2970,6 +3028,19 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 							end
 							break
 						end
+					end
+				end
+			end
+		end
+		
+		if TPItemToPoint and tppoint then
+			for i,v in workspace.World.LooseItems:GetChildren() do
+				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
+					v:PivotTo(tppoint)
+
+					local b = workspace.World.Effects:FindFirstChild("WeldRegion")
+					if b then
+						b:PivotTo(tppoint)
 					end
 				end
 			end
