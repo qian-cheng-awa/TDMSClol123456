@@ -3035,7 +3035,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			ball:PivotTo(CFrame)
 			ball.AlignPosition.Position = CFrame.Position
 			
-			task.wait(1)
+			task.wait(2)
 			
 			teleported = false
 			
