@@ -3033,7 +3033,9 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			Player.Character:PivotTo(CFrame)
 			
 			ball:PivotTo(CFrame)
-			ball.AlignPosition.Position = CFrame.Position
+			if ball:FindFirstChild("AlignPosition") then
+				ball.AlignPosition.Position = CFrame.Position
+			end
 			
 			task.wait(2)
 			
