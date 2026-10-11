@@ -3009,7 +3009,8 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		OakEsp(Item,Color,nil,true,Infos)
 	end
 
-	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
+	table.insert(Connects,RunService.PreSimulation:Connect(function(dt)
+		local teleported = false
 		if TPItem and tpfpl then
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
@@ -3020,12 +3021,16 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 					for i,a in filter do
 						if a.Owner.Value.Name == tpfpl.Name then
-							v:PivotTo(a.BoundingBox.CFrame)
-
-							local b = workspace.World.Effects:FindFirstChild("WeldRegion")
-							if b then
-								b:PivotTo(a.BoundingBox.CFrame)
+							if not teleported then
+								teleported = true
+								for i,b in workspace.World.Effects:GetChildren() do
+									if b.Name == "WeldRegion" and isnetworkowner(b) then
+										b:PivotTo(a.BoundingBox.CFrame)
+									end
+								end
 							end
+							
+							v:PivotTo(a.BoundingBox.CFrame)
 							break
 						end
 					end
@@ -3036,12 +3041,16 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		if TPItemToPoint and tppoint then
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
-					v:PivotTo(tppoint)
-
-					local b = workspace.World.Effects:FindFirstChild("WeldRegion")
-					if b then
-						b:PivotTo(tppoint)
+					if not teleported then
+						teleported = true
+						for i,b in workspace.World.Effects:GetChildren() do
+							if b.Name == "WeldRegion" and isnetworkowner(b) then
+								b:PivotTo(tppoint)
+							end
+						end
 					end
+					
+					v:PivotTo(tppoint)
 				end
 			end
 		end
