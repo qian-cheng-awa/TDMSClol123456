@@ -3030,6 +3030,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 								for i,b in workspace.World.Effects:GetChildren() do
 									if b.Name == "WeldRegion" and isnetworkowner(b) then
 										b:PivotTo(a.BoundingBox.CFrame)
+										b.AlignPosition.Enabled = false
 									end
 								end
 							end
@@ -3050,6 +3051,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 						for i,b in workspace.World.Effects:GetChildren() do
 							if b.Name == "WeldRegion" and isnetworkowner(b) then
 								b:PivotTo(tppoint)
+								b.AlignPosition.Enabled = false
 							end
 						end
 					end
