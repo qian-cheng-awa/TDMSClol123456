@@ -3004,7 +3004,11 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		if Type == "结构" then Color = Color3.new(0,0,1) end
 		if Type == "水果" then Color = Color3.new(1, 0.5, 0.5) end
 		if Type == "其他" then Color = Color3.new(1,1,1) end
-		if Type == "星星" then Color = Color3.new(1, 1, 0.5) end
+		
+		if Type == "星星" then
+			Color = Color3.new(1, 1, 0.5) 
+			Infos[1].Color = Item:FindFirstChildOfClass("MeshPart").Color
+		end
 
 		OakEsp(Item,Color,nil,true,Infos)
 	end
