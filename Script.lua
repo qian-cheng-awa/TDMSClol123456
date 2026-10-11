@@ -3012,9 +3012,39 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		OakEsp(Item,Color,nil,true,Infos)
 	end
-
+	
+	local teleported = false
+	
 	table.insert(Connects,RunService.PreSimulation:Connect(function(dt)
-		local teleported = false
+		local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
+	
+		
+		local function TpDragger(CFrame)
+			if teleported then return end
+			if not tool.IsDragging then return end
+			
+			local CurrentPosition = Player.Character:GetPivot()
+			
+			Player.Character:PivotTo(CFrame)
+			
+			teleported = true
+			
+			local ball = tool.DraggingBall
+			if not ball then return end
+			
+			ball:PivotTo(CFrame)
+			ball.AlignPosition.Position = CFrame.Position
+			
+			RunService.RenderStepped:Wait()
+			
+			teleported = false
+			
+			Player.Character:PivotTo(CurrentPosition)
+			tool:PrimaryAction()
+			
+			
+		end
+		
 		if TPItem and tpfpl then
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
@@ -3025,18 +3055,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 					for i,a in filter do
 						if a.Owner.Value.Name == tpfpl.Name then
-							if not teleported then
-								teleported = true
-								for i,b in workspace.World.Effects:GetChildren() do
-									if b.Name == "WeldRegion" and isnetworkowner(b) then
-										b:PivotTo(a.BoundingBox.CFrame)
-										b.AlignPosition.Enabled = false
-									end
-								end
-							end
-							
-							v:PivotTo(a.BoundingBox.CFrame)
-							break
+							TpDragger(a.BoundingBox.CFrame)
 						end
 					end
 				end
@@ -3046,17 +3065,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		if TPItemToPoint and tppoint then
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
-					if not teleported then
-						teleported = true
-						for i,b in workspace.World.Effects:GetChildren() do
-							if b.Name == "WeldRegion" and isnetworkowner(b) then
-								b:PivotTo(tppoint)
-								b.AlignPosition.Enabled = false
-							end
-						end
-					end
-					
-					v:PivotTo(tppoint)
+					TpDragger(tppoint)
 				end
 			end
 		end
@@ -3095,7 +3104,6 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end
 
-		local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
 		local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
 
 		if EnemyEsp or tooledit.AutoUse then
