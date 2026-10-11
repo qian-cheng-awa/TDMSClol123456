@@ -2942,7 +2942,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	local Translations = Client:RequestModule("Translations")
 
 	local function OakEsp(v,Color,Text,translate,infos)
-		Text = Text or v:GetAttribute("OreName") or v:GetAttribute("RockName") or v:GetAttribute("AltName") or v.Name
+		Text = Text or v:GetAttribute("OreName") or v:GetAttribute("AltName") or v.Name
 
 		if translate then
 			if not Translator then
