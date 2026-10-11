@@ -3015,7 +3015,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	
 	local teleported = false
 	
-	table.insert(Connects,RunService.PreSimulation:Connect(function(dt)
+	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
 		local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
 	
 		
