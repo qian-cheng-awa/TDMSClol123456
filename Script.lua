@@ -1943,16 +1943,16 @@ if MatchPlaceId(6520999642) then
 
 	local DTB = {}
 	local offset = 0
-	
+
 	local CurrentArrows = {}
-	
+
 	local function TaskDelay(T, Callback)
 		table.insert(CurrentArrows,{
 			Time = T,
 			Callback = Callback,
 		})
 	end
-	
+
 	RunService.PreSimulation:Connect(function(dt)
 		for i,v in CurrentArrows do
 			v.Time -= dt
@@ -1961,9 +1961,9 @@ if MatchPlaceId(6520999642) then
 			end
 		end
 	end)
-	
+
 	local Real = false
-	
+
 	local Random = Random.new()
 
 	local function randomWeightedSmaller(max, power)
@@ -1987,7 +1987,7 @@ if MatchPlaceId(6520999642) then
 
 		return max
 	end
-	
+
 	local function Refresh()
 		local s = Player.PlayerGui.Main.FNFMain.Modules.songPlay
 		local a = require(s)
@@ -2006,39 +2006,39 @@ if MatchPlaceId(6520999642) then
 		local KeyPress = getsenv(s).KeyPress
 		local KeyLift = getsenv(s).KeyLift
 		local Inputs = getsenv(s)._G.Settings.Inputs
-		
+
 		local function GetKey(ArrowNumber)
 			return {
 				KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
 				UserInputType = Enum.UserInputType.Keyboard,
 			}
 		end
-		
+
 		local function GetMobileTile(Arrow)
 			local Mobile = Player.PlayerGui.Main.MatchFrame.MobileKeys
 			return Mobile and Mobile.Visible and Mobile:FindFirstChild(Arrow) 
 		end
-		
+
 		local Arrows = {
 			"Left",
 			"Up",
 			"Down",
 			"Right"
 		}
-		
+
 		local Preesed = {}
-		
+
 		local function Input(Arrow)
 			if Preesed[Arrow] then return end
 			Preesed[Arrow] = true
 			local Arrow2 = Arrow
-			
+
 			if typeof(Arrow) == "number" then
 				Arrow = Arrows[Arrow]
 			end
-			
+
 			local Mobile:TextButton = GetMobileTile(Arrow)
-			
+
 			if Mobile then
 				for _,v in getconnections(Mobile.MouseButton1Down) do
 					v:Fire()
@@ -2047,17 +2047,17 @@ if MatchPlaceId(6520999642) then
 				KeyPress(GetKey(Arrow2))
 			end
 		end
-		
+
 		local function Release(Arrow)
 			Preesed[Arrow] = nil
 			local Arrow2 = Arrow
-			
+
 			if typeof(Arrow) == "number" then
 				Arrow = Arrows[Arrow]
 			end
-			
+
 			local Mobile:TextButton = GetMobileTile(Arrow)
-			
+
 			if Mobile then
 				for _,v in getconnections(Mobile.MouseButton1Up) do
 					v:Fire()
@@ -2071,27 +2071,27 @@ if MatchPlaceId(6520999642) then
 			coroutine.wrap(function()
 				local ArrowNumber = args[1]
 				local Ln:number = args[3]
-				
+
 				local finaloffset = offset/1000
-				
+
 				if Real then
-					finaloffset += (randomWeightedSmaller(50,2)*math.random(-1,1))
+					finaloffset += (randomWeightedSmaller(50,2)*math.random(-1,1))/1000
 				end
-				
+
 				TaskDelay(1.985+finaloffset,function()
 					Input(ArrowNumber)
-					
+
 					if Real then
 						task.wait(
 							math.min(
 								0.05,
-								Ln + (randomWeightedSmaller(20,1)*math.random(-1,1))
+								Ln + (randomWeightedSmaller(20,1)*math.random(-1,1))/1000
 							)
 						)
 					elseif Ln and Ln >= 0.05 then
 						task.wait(Ln)
 					end
-					
+
 					Release(ArrowNumber)
 				end)
 			end)()
@@ -2124,7 +2124,7 @@ if MatchPlaceId(6520999642) then
 		Name = "自动游玩",
 		Column = 1,
 	})
-	
+
 
 	Tab:CreateToggle({
 		Name = "仿真",
