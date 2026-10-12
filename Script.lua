@@ -1942,20 +1942,20 @@ if MatchPlaceId(6520999642) then
 	local BotPlay = false
 
 	local DTB = {}
-
-	local function TaskDelay(T,Callback)
+	local offset = 0
+	local function TaskDelay(T, Callback)
 		local Runned = 0
-		local a;a = RunService.PreSimulation:Connect(function(dt)
+		local conn
+		conn = RunService.PreSimulation:Connect(function(dt)
 			Runned += dt
-			if Runned >= T then
+			if Runned + dt/2 >= T then
+				conn:Disconnect()
 				Callback()
-				a:Disconnect()
 			end
 		end)
 	end
-
 	local function Refresh()
-		local s = Player.PlayerGui.Main.FNFMain.songPlay
+		local s = Player.PlayerGui.Main.FNFMain.Modules.songPlay
 		local a = require(s)
 
 		local CreateNote
@@ -1971,7 +1971,7 @@ if MatchPlaceId(6520999642) then
 
 		local KeyPress = getsenv(s).KeyPress
 		local KeyLift = getsenv(s).KeyLift
-		local Inputs = getsenv(Player.PlayerGui.Main.FNFMain.songPlay)._G.Settings.Inputs
+		local Inputs = getsenv(s)._G.Settings.Inputs
 
 		local function InputArrow(args)
 			coroutine.wrap(function()
@@ -1981,7 +1981,7 @@ if MatchPlaceId(6520999642) then
 					KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
 					UserInputType = Enum.UserInputType.Keyboard,
 				}
-				TaskDelay(1.985,function()
+				TaskDelay(2+offset/1000,function()
 					KeyPress(InputK,false)
 
 					task.wait(Ln)
@@ -2025,6 +2025,18 @@ if MatchPlaceId(6520999642) then
 		Callback = function(Value)
 			BotPlay = Value
 		end    
+	})
+
+	Tab:CreateSlider({
+		Name = "偏移",
+		Range = {-500, 500},
+		CurrentValue = offset,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Suffix = "| 毫秒",
+		Callback = function(Value)
+			offset = Value
+		end
 	})
 
 	Refresh()
