@@ -3250,7 +3250,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			end
 			
-			Obj:SetAttribute("FinalValue", FinalValue)
+			Obj:SetAttribute("FinalValue", math.floor(FinalValue))
 		end
 		
 		return Obj:GetAttribute("FinalValue")
@@ -3352,6 +3352,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	
 	local function GetTier(Name,Type)
 		local Data : PlayerMaterialDetails = AllMaterialData[Type][Name]
+		if not Data then
+			Data = AllMaterialData[Type][stripVariant(Name)]
+		end
+		if not Data then
+			warn("No Data : ",Type,Name)
+		end
 		return Data.Tier
 	end
 	
