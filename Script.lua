@@ -1956,8 +1956,9 @@ if MatchPlaceId(6520999642) then
 	RunService.PreSimulation:Connect(function(dt)
 		for i,v in CurrentArrows do
 			v.Time -= dt
-			if v.Time <= 0+dt/2 then
-				v.Callback()
+			if v.Time <= dt/2 then
+				task.spawn(v.Callback)
+				table.remove(CurrentArrows,i)
 			end
 		end
 	end)
