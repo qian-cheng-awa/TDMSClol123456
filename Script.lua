@@ -3211,7 +3211,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			if TreeName then
 				local TreeData : PlayerMaterialDetails = AllMaterialData.Trees[TreeName]
 				
-				if not TreeData then
+				if not TreeData or not TreeData.Stats then
 					return 0/0
 				end
 				
@@ -3225,7 +3225,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			elseif OreName then
 				local OreData : PlayerMaterialDetails = AllMaterialData.Ores[OreName]
 				
-				if not OreData then
+				if not OreData or not OreData.Stats then
 					return 0/0
 				end
 				
@@ -3237,7 +3237,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			elseif RockName then
 				local RockData : PlayerMaterialDetails = AllMaterialData.Rocks[RockName]
 				
-				if not RockData then
+				if not RockData or not RockData.Stats then
 					return 0/0
 				end
 				
