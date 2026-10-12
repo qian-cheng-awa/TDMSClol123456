@@ -2747,34 +2747,53 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	
 	for Name,Info in MaterialIndex.Materials.Trees do
 		local AltName = AllMaterialData.Trees[Name].AltName
-		print(AltName)
-		local FinalName = GetFinalName(AltName)
-		if not table.find(StringOptions.Trees,FinalName) then
-			table.insert(StringOptions.Trees,FinalName)
+		
+		if AltName then
+			local FinalName = GetFinalName(AltName)
+			if not table.find(StringOptions.Trees,FinalName) then
+				table.insert(StringOptions.Trees,FinalName)
+			end
+		else
+			table.insert(StringOptions.Trees,Name)
 		end
 	end
 	
 	for Name,Info in MaterialIndex.Materials.Ores do
 		local AltName = AllMaterialData.Ores[Name].AltName
-		local FinalName = GetFinalName(AltName)
-		if not table.find(StringOptions.Ores,FinalName) then
-			table.insert(StringOptions.Ores,FinalName)
+		
+		if AltName then
+			local FinalName = GetFinalName(AltName)
+			if not table.find(StringOptions.Ores,FinalName) then
+				table.insert(StringOptions.Ores,FinalName)
+			end
+		else
+			table.insert(StringOptions.Ores,Name)
 		end
 	end
 	
 	for Name,Info in MaterialIndex.Materials.Rocks do
 		local AltName = AllMaterialData.Rocks[Name].AltName
-		local FinalName = GetFinalName(AltName)
-		if not table.find(StringOptions.Rocks,FinalName) then
-			table.insert(StringOptions.Rocks,FinalName)
+		
+		if AltName then
+			local FinalName = GetFinalName(AltName)
+			if not table.find(StringOptions.Rocks,FinalName) then
+				table.insert(StringOptions.Rocks,FinalName)
+			end
+		else
+			table.insert(StringOptions.Rocks,Name)
 		end
 	end
 	
 	for Name,Info in MaterialIndex.Materials.Creatures do
 		local AltName = AllMaterialData.Creatures[Name].AltName
-		local FinalName = GetFinalName(AltName)
-		if not table.find(StringOptions.Creatures,FinalName) then
-			table.insert(StringOptions.Creatures,FinalName)
+		
+		if AltName then
+			local FinalName = GetFinalName(AltName)
+			if not table.find(StringOptions.Creatures,FinalName) then
+				table.insert(StringOptions.Creatures,FinalName)
+			end
+		else
+			table.insert(StringOptions.Creatures,Name)
 		end
 	end
 	
@@ -3192,6 +3211,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			if TreeName then
 				local TreeData : PlayerMaterialDetails = AllMaterialData.Trees[TreeName]
 				
+				if not TreeData then
+					return 0/0
+				end
+				
 				if TreeData.Stats.PlankedValue then
 					FinalValue = Size * TreeData.Stats.PlankedValue
 				elseif TreeData.Stats.MilledValue then
@@ -3202,6 +3225,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			elseif OreName then
 				local OreData : PlayerMaterialDetails = AllMaterialData.Ores[OreName]
 				
+				if not OreData then
+					return 0/0
+				end
+				
 				if OreData.Stats.ForgedValue then
 					FinalValue = Size * OreData.Stats.ForgedValue
 				elseif OreData.Stats.RefinedValue then
@@ -3209,6 +3236,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			elseif RockName then
 				local RockData : PlayerMaterialDetails = AllMaterialData.Rocks[RockName]
+				
+				if not RockData then
+					return 0/0
+				end
 				
 				if RockData.Stats.ForgedValue then
 					FinalValue = Size * RockData.Stats.ForgedValue
@@ -3287,6 +3318,9 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	end
 	
 	local function GetGradientColor(value: number): Color3
+		if value ~= value then
+			return Color3.new(.2,.2,.2)
+		end
 		local maxValue = 1_000_000
 		local t = math.clamp(value / maxValue, 0, 1)
 
@@ -3393,12 +3427,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 					for _,v in v:GetChildren() do
 						if v.Name == "Tree" then
 							local TreeName = v:GetAttribute("TreeName")
-							if table.find(EspFilter.Tree,TreeName) then
+							if table.find(EspFilter.Tree,TreeName) or table.find(EspFilter.Tree,GetFinalName(v:GetAttribute("AltName"))) then
 								local FinalValue = GetValue(v)
 								local Tier = GetTier(TreeName,"Trees")
 								OakEsp(v,Color3.new(1, 0.584314, 0),nil,true,{
 									{
-										Text = tostring(FinalValue).."$",
+										Text = tostring(FinalValue) == "nan" and "Unlocked" or (tostring(FinalValue).."$"),
 										Color = GetGradientColor(FinalValue),
 									},
 									{
@@ -3423,8 +3457,19 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 							local RockName = v:GetAttribute("RockName")
 							local OreName = v:GetAttribute("OreName")
 							if 
-								(RockEsp and table.find(EspFilter.Rock,RockName)) or 
-								(OreEsp and table.find(EspFilter.Ore,OreName)) 
+								(
+									RockEsp and (
+										table.find(EspFilter.Rock,RockName) or
+										table.find(EspFilter.Rock,GetFinalName(v:GetAttribute("AltName")))
+									)
+								) 
+									or 
+								(
+									OreEsp and (
+										table.find(EspFilter.Ore,OreName) or
+										table.find(EspFilter.Ore,GetFinalName(OreName))
+									)
+								) 
 							then
 								local FinalValue = GetValue(v)
 								
@@ -3433,7 +3478,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 								OakEsp(v,Color,nil,true,{
 									{
-										Text = tostring(FinalValue).."$",
+										Text = tostring(FinalValue) == "nan" and "Unlocked" or (tostring(FinalValue).."$"),
 										Color = GetGradientColor(FinalValue),
 									},
 									{
