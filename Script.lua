@@ -2511,12 +2511,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			Client:AskServer("GetMaterialIndexForPlayer", {
 				MaterialCategory = categoryName
 			}, function(data)
-				AllMaterialData[categoryName] = typeof(data) == "table" and data or {}
+				AllMaterialData[categoryName] = data or {}
 				
-				warn("[TDM] Loaded category: " .. categoryName .. " (" .. c .. "/" .. #args .. ")")
-
 				c += 1
-
+				warn("[TDM] Loaded category: " .. categoryName .. " (" .. c .. "/" .. #args .. ")")
 				if c == #args then
 					AllDone = true
 				end
@@ -2749,6 +2747,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	
 	for Name,Info in MaterialIndex.Materials.Trees do
 		local AltName = AllMaterialData.Trees[Name].AltName
+		print(AltName)
 		local FinalName = GetFinalName(AltName)
 		if not table.find(StringOptions.Trees,FinalName) then
 			table.insert(StringOptions.Trees,FinalName)
