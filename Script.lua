@@ -1943,17 +1943,51 @@ if MatchPlaceId(6520999642) then
 
 	local DTB = {}
 	local offset = 0
+	
+	local CurrentArrows = {}
+	
 	local function TaskDelay(T, Callback)
-		local Runned = 0
-		local conn
-		conn = RunService.PreSimulation:Connect(function(dt)
-			Runned += dt
-			if Runned + dt/2 >= T then
-				conn:Disconnect()
-				Callback()
-			end
-		end)
+		table.insert(CurrentArrows,{
+			Time = T,
+			Callback = Callback,
+		})
 	end
+	
+	RunService.PreSimulation:Connect(function(dt)
+		for i,v in CurrentArrows do
+			v.Time -= dt
+			if v.Time <= 0+dt/2 then
+				v.Callback()
+			end
+		end
+	end)
+	
+	local Real = false
+	
+	local Random = Random.new()
+
+	local function randomWeightedSmaller(max, power)
+		max = max or 100
+		power = power or 2
+
+		local total = 0
+		for n = 1, max do
+			total += 1 / (n ^ power)
+		end
+
+		local r = Random:NextNumber() * total
+		local acc = 0
+
+		for n = 1, max do
+			acc += 1 / (n ^ power)
+			if r <= acc then
+				return n
+			end
+		end
+
+		return max
+	end
+	
 	local function Refresh()
 		local s = Player.PlayerGui.Main.FNFMain.Modules.songPlay
 		local a = require(s)
@@ -1972,21 +2006,93 @@ if MatchPlaceId(6520999642) then
 		local KeyPress = getsenv(s).KeyPress
 		local KeyLift = getsenv(s).KeyLift
 		local Inputs = getsenv(s)._G.Settings.Inputs
+		
+		local function GetKey(ArrowNumber)
+			return {
+				KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
+				UserInputType = Enum.UserInputType.Keyboard,
+			}
+		end
+		
+		local function GetMobileTile(Arrow)
+			local Mobile = Player.PlayerGui.Main.MatchFrame.MobileKeys
+			return Mobile and Mobile.Visible and Mobile:FindFirstChild(Arrow) 
+		end
+		
+		local Arrows = {
+			"Left",
+			"Up",
+			"Down",
+			"Right"
+		}
+		
+		local Preesed = {}
+		
+		local function Input(Arrow)
+			if Preesed[Arrow] then return end
+			Preesed[Arrow] = true
+			local Arrow2 = Arrow
+			
+			if typeof(Arrow) == "number" then
+				Arrow = Arrows[Arrow]
+			end
+			
+			local Mobile:TextButton = GetMobileTile(Arrow)
+			
+			if Mobile then
+				for _,v in getconnections(Mobile.MouseButton1Down) do
+					v:Fire()
+				end
+			else
+				KeyPress(GetKey(Arrow2))
+			end
+		end
+		
+		local function Release(Arrow)
+			Preesed[Arrow] = nil
+			local Arrow2 = Arrow
+			
+			if typeof(Arrow) == "number" then
+				Arrow = Arrows[Arrow]
+			end
+			
+			local Mobile:TextButton = GetMobileTile(Arrow)
+			
+			if Mobile then
+				for _,v in getconnections(Mobile.MouseButton1Up) do
+					v:Fire()
+				end
+			else
+				KeyLift(GetKey(Arrow2))
+			end
+		end
 
 		local function InputArrow(args)
 			coroutine.wrap(function()
 				local ArrowNumber = args[1]
-				local Ln = args[3]
-				local InputK = {
-					KeyCode = Enum.KeyCode[Inputs[ArrowNumber]],
-					UserInputType = Enum.UserInputType.Keyboard,
-				}
-				TaskDelay(2+offset/1000,function()
-					KeyPress(InputK,false)
-
-					task.wait(Ln)
-
-					KeyLift(InputK,false)
+				local Ln:number = args[3]
+				
+				local finaloffset = offset/1000
+				
+				if Real then
+					finaloffset += (randomWeightedSmaller(50,2)*math.random(-1,1))
+				end
+				
+				TaskDelay(1.985+finaloffset,function()
+					Input(ArrowNumber)
+					
+					if Real then
+						task.wait(
+							math.min(
+								0.05,
+								Ln + (randomWeightedSmaller(20,1)*math.random(-1,1))
+							)
+						)
+					elseif Ln and Ln >= 0.05 then
+						task.wait(Ln)
+					end
+					
+					Release(ArrowNumber)
 				end)
 			end)()
 		end
@@ -2018,6 +2124,15 @@ if MatchPlaceId(6520999642) then
 		Name = "自动游玩",
 		Column = 1,
 	})
+	
+
+	Tab:CreateToggle({
+		Name = "仿真",
+		CurrentValue = Real,
+		Callback = function(Value)
+			Real = Value
+		end    
+	})
 
 	Tab:CreateToggle({
 		Name = "开启",
@@ -2026,7 +2141,6 @@ if MatchPlaceId(6520999642) then
 			BotPlay = Value
 		end    
 	})
-
 	Tab:CreateSlider({
 		Name = "偏移",
 		Range = {-500, 500},
@@ -2045,296 +2159,6 @@ if MatchPlaceId(6520999642) then
 			Refresh()
 		end
 	end)
-elseif MatchPlaceId(116362330852395) then
-	local UpdateBulletsCount = RS:WaitForChild("UpdateBulletsCount")
-	local AddDataChips = RS.AddDataChips
-	local GunRaycast = RS.GunRaycast
-
-	local HeadInWaterChange = false
-
-	function GetToolToBackpack(Tool)
-		RS:WaitForChild("GrabPart"):FireServer(
-			Tool,
-			1
-		)
-	end
-
-	function IsItem(Obj:Tool)
-		if (Obj:IsA("Tool") or Obj:IsA("Model")) and Obj:FindFirstChild("HasPlayer") then
-			return true
-		end
-	end
-
-	function IsInStore(Tool)
-		if not Tool:FindFirstChild("IsInStore") then
-			return false
-		end
-		return Tool.IsInStore.Value == 1
-	end
-
-	function UnInStore(Tool)
-		Tool.IsInStore.Value = 0
-	end
-
-	function AddAmmo(Tool,Count)
-		if Tool.Name == "9mmAmmoBox" then
-			UpdateBulletsCount:FireServer(true, true, Count or 20, Tool)
-		elseif Tool.Name == "APSAmmoBox" then
-			UpdateBulletsCount:FireServer(true, true, Count or 26, Tool, "APS")
-		end
-	end
-
-	function AddCurrentAmmo(Count)
-		local Tool = Player.Character:FindFirstChildOfClass("Tool")
-		if not Tool:FindFirstChild("Bullets") then return end
-
-		UpdateBulletsCount:FireServer(
-			false,
-			true,
-			Count,
-			Tool,
-			Tool.Name == "APS" and "APS" or nil
-		)
-	end
-
-	function GunFire(FinalPosition)
-		local Tool = Player.Character:FindFirstChildOfClass("Tool")
-		if not Tool or not Tool:FindFirstChild("Bullets") then return end
-
-		local Camera = workspace.CurrentCamera
-
-		local FinalCFrame = CFrame.new(Camera.CFrame.Position, FinalPosition)
-
-		GunRaycast:FireServer(FinalCFrame.LookVector * 1000, FinalCFrame.Position + FinalCFrame.LookVector * 3)
-	end
-
-	function AddDataChip(Tool,Count)
-		if Tool.Name ~= "DataChip" then return end
-		AddDataChips:FireServer(Count, Tool)
-	end
-
-	local OldCharacterConnections = {}
-
-	local ca = function(Character)
-		for i,v in pairs(OldCharacterConnections) do
-			v:Disconnect()
-			OldCharacterConnections[i] = nil
-		end
-
-		local HeadInWater = Character:WaitForChild("Variables"):WaitForChild("HeadInWater")
-		table.insert(OldCharacterConnections,HeadInWater.Changed:Connect(function()
-			if HeadInWaterChange and HeadInWater.Value == true then
-				HeadInWater.Value = false
-			end
-		end))
-	end
-
-	Player.CharacterAdded:Connect(ca)
-	ca(Player.Character)
-	local TabSection = Window:CreateTabSection("SubCargo")
-	local MainTab = TabSection:CreateTab({
-		Name = "主菜单",
-		Columns = 1,
-	})
-
-	local Tab = MainTab:CreateGroupbox({
-		Name = "",
-		Column = 1,
-	})
-
-	Tab:CreateButton({
-		Name = "强制拥有商店物品",
-		Callback = function()
-			for i,v in ipairs(workspace:GetDescendants()) do
-				if IsItem(v) and IsInStore(v) then
-					UnInStore(v)
-				end
-			end
-		end,
-	})
-
-	Tab:CreateButton({
-		Name = "无限备弹",
-		Callback = function()
-			local a = workspace:FindFirstChild("9mmAmmoBox",true)
-			if a then
-				AddAmmo(a,1145141919810)
-			end
-
-			local b = workspace:FindFirstChild("APSAmmoBox",true)
-			if b then
-				AddAmmo(b,1145141919810)
-			end
-		end,
-	})
-
-	Tab:CreateButton({
-		Name = "无限子弹",
-		Callback = function()
-			AddCurrentAmmo(1145141919810)
-		end,
-	})
-
-
-	Tab:CreateToggle({
-		Name = "无限氧气",
-		CurrentValue = HeadInWaterChange,
-		Callback = function(Value)
-			HeadInWaterChange = Value
-			if Value then
-				local HeadInWater = Player.Character:WaitForChild("Variables"):WaitForChild("HeadInWater")
-				HeadInWater.Value = false
-			end
-		end
-	})
-
-	local function ItemEsp(v)
-		if v:FindFirstChild("Price") then
-			EspLib:WrapObject({
-				Object = v,
-				DisplayText = v.Name,
-				Color = Color3.new(0,1,0),
-				Infos = {
-					{
-						Text = tostring(v.Price.Value/2),
-						Color = Color3.new(0.831373, 1, 0)
-					}	
-				},
-			})
-		else
-			EspLib:WrapObject({
-				Object = v,
-				DisplayText = v.Name,
-				Color = Color3.new(0,1,0),
-			})
-		end
-	end
-
-	local function EnemiesEspFunction(v)
-		EspLib:WrapObject({
-			Object = v,
-			DisplayText = v.Name,
-			Color = {
-				Text = Color3.new(1,0,0),
-				Box = Color3.new(1,0,0),
-			},
-		})
-	end
-
-	local itemesp = true
-	Tab:CreateToggle({
-		Name = "物品透视",
-		CurrentValue = itemesp,
-		Callback = function(Value)
-			itemesp = Value
-
-			for i,v in pairs(workspace:QueryDescendants("Model:has(#HasPlayer)")) do
-				if IsItem(v) then
-					if Value then
-						ItemEsp(v)
-					else
-						EspLib:UnwrapObject(v)
-					end
-				end
-			end
-		end
-	})
-
-
-
-	local EnemiesEsp = true
-	Tab:CreateToggle({
-		Name = "怪物透视",
-		CurrentValue = itemesp,
-		Callback = function(Value)
-			EnemiesEsp = Value
-
-			for i,v in pairs(workspace:QueryDescendants("Model:has(#Humanoid)")) do
-				if  v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" then
-					if Value then
-						EnemiesEspFunction(v)
-					else
-						EspLib:UnwrapObject(v)
-					end
-				end
-			end
-		end
-	})
-
-	local AutoShoot = true
-	Tab:CreateToggle({
-		Name = "自动射击怪物",
-		CurrentValue = AutoShoot,
-		Callback = function(Value)
-			AutoShoot = Value
-		end,
-	})
-
-	Tab:CreateToggle({
-		Name = "全亮",
-		CurrentValue = false,
-		Callback = function(Value)
-			if Connects["FB"] then
-				Connects["FB"]:Disconnect()
-				Connects["FB"] = nil
-			end
-			if Value then
-				Connects["FB"] = RunService.RenderStepped:Connect(function()
-					Lighting.Brightness = 2
-					Lighting.ClockTime = 14
-					Lighting.FogEnd = 100000
-					Lighting.GlobalShadows = false
-					Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-				end)
-			end
-		end,
-	})
-
-	local lasto = tick()
-
-	table.insert(Connects,RunService.RenderStepped:Connect(function()
-		if HeadInWaterChange and tick()-lasto >= 1 then
-			lasto = tick()
-			RS:WaitForChild("UseOxygen"):FireServer(100)
-		end
-
-		local Camera = workspace.CurrentCamera
-		if AutoShoot and Player.Character:FindFirstChildOfClass("Tool") and Player.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Bullets") then
-			for i,v in pairs(workspace:QueryDescendants("Model:has(#Humanoid)")) do
-				if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" and v.Humanoid.Health > 0 then
-					local p = RaycastParams.new()
-					p.FilterType = Enum.RaycastFilterType.Include
-					p.FilterDescendantsInstances = {workspace.THE_SUBMARINE}
-
-					local r = workspace:Raycast(Camera.CFrame.Position,CFrame.new(Camera.CFrame.Position,v.HumanoidRootPart.Position).LookVector*1000)
-					if r and r.Instance then
-						if not r.Instance:IsDescendantOf(v) then
-							return
-						end
-					end
-
-					GunFire(v.HumanoidRootPart.Position)
-				end
-			end
-		end
-	end))
-
-	table.insert(Connects,workspace.DescendantAdded:Connect(function(v)
-		if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name == "Bloodworm" then
-			EnemiesEspFunction(v)
-			return
-		end
-
-		if v.Name == "HasPlayer" and v.Parent:IsA("Model") then
-			if EspLib.Objects[v.Parent] then return end
-			ItemEsp(v)
-		end
-		if itemesp and IsItem(v) then
-			ItemEsp(v)
-		end
-	end))
-
-	local AutoShoot = true
 elseif MatchPlaceId(13042495892) then
 	local BotPlay = false
 	local TabSection = Window:CreateTabSection("FNF")
@@ -2444,7 +2268,7 @@ elseif MatchPlaceId(13042495892) then
 elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
 	local scr = RF:FindFirstChild("Client")
 	local Client = require(scr)
-	
+
 	type MaterialCategory =
 		"Trees"
 	| "Rocks"
@@ -2469,7 +2293,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Sections: { string },
 		Tab: CategoryTab,
 	}
-	
+
 	type TreesMaterials       = { [string]: MaterialEntry }
 	type RocksMaterials       = { [string]: MaterialEntry }
 	type OresMaterials        = { [string]: MaterialEntry }
@@ -2507,24 +2331,24 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	type GetMaterialIndexResponse = {
 		[string]: PlayerMaterialDetails,
 	}
-	
+
 	local AllMaterialData : {
 		[string] : {GetMaterialIndexResponse}	
 	} = {}
-	
+
 	local AllDone = false
-	
+
 	local function requestCategory(...)
 		local args = {...}
-		
+
 		local c = 0
-		
+
 		for _, categoryName in ipairs(args) do
 			Client:AskServer("GetMaterialIndexForPlayer", {
 				MaterialCategory = categoryName
 			}, function(data)
 				AllMaterialData[categoryName] = data or {}
-				
+
 				c += 1
 				warn("[TDM] Loaded category: " .. categoryName .. " (" .. c .. "/" .. #args .. ")")
 				if c == #args then
@@ -2533,11 +2357,11 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end)
 		end
 	end
-	
+
 	requestCategory("Trees","Rocks","Ores","Creatures")
-	
+
 	repeat task.wait() until AllDone
-	
+
 	local MaterialIndex : MIndex = require(RS.Resources.MaterialIndex)
 
 	local Backpack = Client:RequestModule("Backpack")
@@ -2723,7 +2547,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end    
 	})
-	
+
 	local StringOptions = {
 		Trees = {},
 		Ores = {},
@@ -2732,12 +2556,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Enemies = {"普通","可抓捕"},
 		Items = {"工具","宠物","星星","树","木板","矿","岩石","水果","结构","其他"}
 	}
-	
+
 	local Cache = {}
 	local Translator:Translator
 
 	local Translations = Client:RequestModule("Translations")
-	
+
 	local function GetFinalName(AltName)
 		return Translations:GetTranslation(
 			AltName
@@ -2753,13 +2577,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			local sourceTranslation = Translator:Translate(game, GetFinalName(AltName))
 			Cache[AltName] = sourceTranslation
 		end
-		
+
 		return Cache[AltName]
 	end
-	
+
 	for Name,Info in MaterialIndex.Materials.Trees do
 		local AltName = AllMaterialData.Trees[Name].AltName
-		
+
 		if AltName then
 			local FinalName = GetFinalName(AltName)
 			if not table.find(StringOptions.Trees,FinalName) then
@@ -2769,10 +2593,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			table.insert(StringOptions.Trees,Name)
 		end
 	end
-	
+
 	for Name,Info in MaterialIndex.Materials.Ores do
 		local AltName = AllMaterialData.Ores[Name].AltName
-		
+
 		if AltName then
 			local FinalName = GetFinalName(AltName)
 			if not table.find(StringOptions.Ores,FinalName) then
@@ -2782,10 +2606,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			table.insert(StringOptions.Ores,Name)
 		end
 	end
-	
+
 	for Name,Info in MaterialIndex.Materials.Rocks do
 		local AltName = AllMaterialData.Rocks[Name].AltName
-		
+
 		if AltName then
 			local FinalName = GetFinalName(AltName)
 			if not table.find(StringOptions.Rocks,FinalName) then
@@ -2795,10 +2619,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			table.insert(StringOptions.Rocks,Name)
 		end
 	end
-	
+
 	for Name,Info in MaterialIndex.Materials.Creatures do
 		local AltName = AllMaterialData.Creatures[Name].AltName
-		
+
 		if AltName then
 			local FinalName = GetFinalName(AltName)
 			if not table.find(StringOptions.Creatures,FinalName) then
@@ -2808,7 +2632,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			table.insert(StringOptions.Creatures,Name)
 		end
 	end
-	
+
 	local function stripVariant(name: string): string
 		return string.gsub(name, "_[^_]*$", "")
 	end
@@ -2861,7 +2685,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			EspFilter.Ore = Options
 		end,
 	})
-	
+
 	Tab:CreateToggle({
 		Name = "石头",
 		CurrentValue = RockEsp,
@@ -3165,7 +2989,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		return element
 	end)
-	
+
 	local function GetSize(v:Model)
 		local Size = 0
 
@@ -3210,7 +3034,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		return Size
 	end
-	
+
 	local function GetValue(Obj)
 		if not Obj:GetAttribute("FinalValue") then
 			local OreName = Obj:GetAttribute("OreName")
@@ -3218,15 +3042,15 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			local TreeName = Obj:GetAttribute("TreeName")
 
 			local Size = GetSize(Obj)
-			
+
 			local FinalValue = 0
 			if TreeName then
 				local TreeData : PlayerMaterialDetails = AllMaterialData.Trees[TreeName]
-				
+
 				if not TreeData or not TreeData.Stats then
 					return 0/0
 				end
-				
+
 				if TreeData.Stats.PlankedValue then
 					FinalValue = Size * TreeData.Stats.PlankedValue
 				elseif TreeData.Stats.MilledValue then
@@ -3236,11 +3060,11 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			elseif OreName then
 				local OreData : PlayerMaterialDetails = AllMaterialData.Ores[OreName]
-				
+
 				if not OreData or not OreData.Stats then
 					return 0/0
 				end
-				
+
 				if OreData.Stats.ForgedValue then
 					FinalValue = Size * OreData.Stats.ForgedValue
 				elseif OreData.Stats.RefinedValue then
@@ -3248,11 +3072,11 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			elseif RockName then
 				local RockData : PlayerMaterialDetails = AllMaterialData.Rocks[RockName]
-				
+
 				if not RockData or not RockData.Stats then
 					return 0/0
 				end
-				
+
 				if RockData.Stats.ForgedValue then
 					FinalValue = Size * RockData.Stats.ForgedValue
 				elseif RockData.Stats.RefinedValue then
@@ -3261,17 +3085,17 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 					FinalValue = Size * RockData.Stats.RawValue
 				end
 			end
-			
+
 			Obj:SetAttribute("FinalValue", math.floor(FinalValue))
 		end
-		
+
 		return Obj:GetAttribute("FinalValue")
 	end
 
 
 	local function OakEsp(v,Color,Text,translate,infos)
 		Text = Text or v:GetAttribute("OreName") or v:GetAttribute("AltName") or v.Name
-		
+
 		if translate then
 			Text = _Translator(Text)
 		end
@@ -3328,7 +3152,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		OakEsp(Item,Color,nil,true,Infos)
 	end
-	
+
 	local function GetGradientColor(value: number): Color3
 		if value ~= value then
 			return Color3.new(.2,.2,.2)
@@ -3356,12 +3180,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		return colors[index + 1]:Lerp(colors[index + 2], alpha)
 	end
-	
+
 	local function GetDropChance(Name)
 		local Data : PlayerMaterialDetails = AllMaterialData.Creatures[Name]
 		return Data.Drops
 	end
-	
+
 	local function GetTier(Name,Type)
 		local Data : PlayerMaterialDetails = AllMaterialData[Type][Name]
 		if not Data then
@@ -3372,16 +3196,16 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		end
 		return Data.Tier
 	end
-	
+
 	local QuestV2 = require(RF.Client.GUI.UI.PrimaryUtilities.TopbarMenus.Quests.QuestsV2)
-	
+
 	local function GetTierColor(Tier)
 		local Info = QuestV2.MaterialIndexTierStyles[Tier]
 		if Info then
 			return Info.FrameBackgroundColor
 		end
 	end
-	
+
 	local teleported = false
 
 	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
@@ -3478,19 +3302,19 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 								(
 									RockEsp and (
 										table.find(EspFilter.Rock,RockName) or
-										table.find(EspFilter.Rock,GetFinalName(v:GetAttribute("AltName")))
+											table.find(EspFilter.Rock,GetFinalName(v:GetAttribute("AltName")))
 									)
 								) 
 									or 
-								(
-									OreEsp and (
-										table.find(EspFilter.Ore,OreName) or
-										table.find(EspFilter.Ore,GetFinalName(OreName))
-									)
-								) 
+									(
+										OreEsp and (
+											table.find(EspFilter.Ore,OreName) or
+											table.find(EspFilter.Ore,GetFinalName(OreName))
+										)
+									) 
 							then
 								local FinalValue = GetValue(v)
-								
+
 								local Color = v:GetAttribute("RockName") and Color3.new(0.478431, 0.478431, 0.478431) or Color3.new(0, 1, 1)
 								local Tier = GetTier(OreName or RockName,OreName and "Ores" or "Rocks")
 
