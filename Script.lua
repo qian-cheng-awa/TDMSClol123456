@@ -2430,8 +2430,105 @@ elseif MatchPlaceId(13042495892) then
 		end
 	end))
 elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
-	local scr = game:GetService("ReplicatedFirst"):FindFirstChild("Client")
+	local scr = RF:FindFirstChild("Client")
 	local Client = require(scr)
+	
+	type MaterialCategory =
+		"Trees"
+	| "Rocks"
+	| "Ores"
+	| "Creatures"
+	| "Forageables"
+
+	type CategoryTab =
+		"Resources"
+	| "Misc."
+
+	type MaterialEntry = {
+		Image: string,
+		Sections: { string },
+		Description: string,
+		Hidden: boolean?,
+		Enemy: boolean?,
+	}
+
+	type CategoryInfo = {
+		Name: MaterialCategory,
+		Sections: { string },
+		Tab: CategoryTab,
+	}
+	
+	type TreesMaterials       = { [string]: MaterialEntry }
+	type RocksMaterials       = { [string]: MaterialEntry }
+	type OresMaterials        = { [string]: MaterialEntry }
+	type CreaturesMaterials   = { [string]: MaterialEntry }
+	type ForageablesMaterials = { [string]: MaterialEntry }
+
+	type MaterialsTable = {
+		Trees:       TreesMaterials,
+		Rocks:       RocksMaterials,
+		Ores:        OresMaterials,
+		Creatures:   CreaturesMaterials,
+		Forageables: ForageablesMaterials,
+	}
+
+	type MIndex = {
+		Categories: { CategoryInfo },
+		Materials: MaterialsTable,
+	}
+
+	type MaterialDrop = {
+		Name: string,
+		Chance: number,
+	}
+
+	type StatValue = number | boolean
+
+	type PlayerMaterialDetails = {
+		Unlocked: boolean?,
+		Tier: number?,
+		AltName: string?,
+		Stats: { [string]: StatValue }?,
+		Drops: { MaterialDrop }?,
+	}
+
+	type GetMaterialIndexResponse = {
+		[string]: PlayerMaterialDetails,
+	}
+	
+	local AllMaterialData : {
+		[string] : {GetMaterialIndexResponse}	
+	} = {}
+	
+	local AllDone = false
+	
+	local function requestCategory(...)
+		local args = {...}
+		
+		local c = 0
+		
+		for _, categoryName in ipairs(args) do
+			Client:AskServer("GetMaterialIndexForPlayer", {
+				MaterialCategory = categoryName
+			}, function(data)
+				AllMaterialData[categoryName] = typeof(data) == "table" and data or {}
+				
+				warn("[TDM] Loaded category: " .. categoryName .. " (" .. c .. "/" .. #args .. ")")
+
+				c += 1
+
+				if c == #args then
+					AllDone = true
+				end
+			end)
+		end
+	end
+	
+	requestCategory("Trees","Rocks","Ores","Creatures")
+	
+	repeat task.wait() until AllDone
+	
+	local MaterialIndex : MIndex = require(RS.Resources.MaterialIndex)
 
 	local Backpack = Client:RequestModule("Backpack")
 
@@ -2477,10 +2574,8 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				local center = marker.Position.X.Scale
 				local halfWidth = marker.Size.X.Scale / 2
 
-				-- 只在中心附近触发
 				local nearCenter = math.abs(progress - center) <= halfWidth * 0.2
 
-				-- 或者这一帧跨过中心
 				local crossedCenter = (lastProgress < center and progress >= center)
 					or (lastProgress > center and progress <= center)
 
@@ -2587,13 +2682,16 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 	TreeEsp = false
 	OreEsp = false
+	RockEsp = false
 	EnemyEsp = false
 	ItemEsp = false
 
 	local EspFilter = {
 		Tree = {},
 		Ore = {},
+		Rock = {},
 		Enemy = {},
+		Creature = {},
 		Items = {},
 	}
 
@@ -2615,20 +2713,82 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end    
 	})
-
+	
 	local StringOptions = {
 		Trees = {},
 		Ores = {},
+		Rocks = {},
+		Creatures = {},
 		Enemies = {"普通","可抓捕"},
 		Items = {"工具","宠物","星星","树","木板","矿","岩石","水果","结构","其他"}
 	}
+	
+	local Cache = {}
+	local Translator:Translator
 
-	for i,v in workspace.World.TreeRegions:GetChildren() do
+	local Translations = Client:RequestModule("Translations")
+	
+	local function GetFinalName(AltName)
+		return Translations:GetTranslation(
+			AltName
+		)
+	end
+
+	local function _Translator(AltName)
+		if not Translator then
+			Translator = LocalizationService:GetTranslatorForPlayer(Player)
+		end
+
+		if not Cache[AltName] then
+			local sourceTranslation = Translator:Translate(game, GetFinalName(AltName))
+			Cache[AltName] = sourceTranslation
+		end
+		
+		return Cache[AltName]
+	end
+	
+	for Name,Info in MaterialIndex.Materials.Trees do
+		local AltName = AllMaterialData.Trees[Name].AltName
+		local FinalName = GetFinalName(AltName)
+		if not table.find(StringOptions.Trees,FinalName) then
+			table.insert(StringOptions.Trees,FinalName)
+		end
+	end
+	
+	for Name,Info in MaterialIndex.Materials.Ores do
+		local AltName = AllMaterialData.Ores[Name].AltName
+		local FinalName = GetFinalName(AltName)
+		if not table.find(StringOptions.Ores,FinalName) then
+			table.insert(StringOptions.Ores,FinalName)
+		end
+	end
+	
+	for Name,Info in MaterialIndex.Materials.Rocks do
+		local AltName = AllMaterialData.Rocks[Name].AltName
+		local FinalName = GetFinalName(AltName)
+		if not table.find(StringOptions.Rocks,FinalName) then
+			table.insert(StringOptions.Rocks,FinalName)
+		end
+	end
+	
+	for Name,Info in MaterialIndex.Materials.Creatures do
+		local AltName = AllMaterialData.Creatures[Name].AltName
+		local FinalName = GetFinalName(AltName)
+		if not table.find(StringOptions.Creatures,FinalName) then
+			table.insert(StringOptions.Creatures,FinalName)
+		end
+	end
+	
+	local function stripVariant(name: string): string
+		return string.gsub(name, "_[^_]*$", "")
+	end
+
+	--[[for i,v in workspace.World.TreeRegions:GetChildren() do
 		table.insert(StringOptions.Trees,v.Name)
 	end
 	for i,v in workspace.World.RockRegions:GetChildren() do
 		table.insert(StringOptions.Ores,v.Name)
-	end
+	end]]
 
 	Tab:CreateDropdown({
 		Name = "过滤",
@@ -2651,7 +2811,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				for i,v in workspace.World.RockRegions:GetChildren() do
 					if v:FindFirstChild("") then
 						for _,v in v:GetChildren() do
-							if v.Name == "" then
+							if v.Name == "" and v:GetAttribute("OreName") then
 								EspLib:UnwrapObject(v)
 							end
 						end
@@ -2671,6 +2831,36 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			EspFilter.Ore = Options
 		end,
 	})
+	
+	Tab:CreateToggle({
+		Name = "石头",
+		CurrentValue = RockEsp,
+		Callback = function(Value)
+			RockEsp = Value
+			if not Value then
+				for i,v in workspace.World.RockRegions:GetChildren() do
+					if v:FindFirstChild("") then
+						for _,v in v:GetChildren() do
+							if v.Name == "" and not v:GetAttribute("OreName") then
+								EspLib:UnwrapObject(v)
+							end
+						end
+					end
+				end
+			end
+		end,
+	})
+	Tab:CreateDropdown({
+		Name = "过滤",
+		Options = StringOptions.Rocks,
+		Special = 3,
+		CurrentOption = StringOptions.Rocks,
+		MultipleOptions = true,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			EspFilter.Rock = Options
+		end,
+	})
 
 	Tab:CreateToggle({
 		Name = "生物",
@@ -2685,13 +2875,24 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		end,
 	})
 	Tab:CreateDropdown({
-		Name = "过滤",
+		Name = "类型过滤",
 		Options = StringOptions.Enemies,
 		CurrentOption = StringOptions.Enemies,
 		MultipleOptions = true,
 		Placeholder = "None Selected",
 		Callback = function(Options)
 			EspFilter.Enemy = Options
+		end,
+	})
+	Tab:CreateDropdown({
+		Name = "过滤",
+		Options = StringOptions.Creatures,
+		CurrentOption = StringOptions.Creatures,
+		Special = 3,
+		MultipleOptions = true,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			EspFilter.Creature = Options
 		end,
 	})
 	Tab:CreateToggle({
@@ -2714,6 +2915,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Name = "过滤",
 		Options = StringOptions.Items,
 		CurrentOption = StringOptions.Items,
+		Special = 3,
 		MultipleOptions = true,
 		Placeholder = "None Selected",
 		Callback = function(Options)
@@ -2757,11 +2959,11 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			tpfpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
 		end,
 	})
-	
+
 	local TPItemToPoint = false
 	local PointName = ""
 	local tppoint
-	
+
 	local function GetPoints()
 		if not isfolder("OaklandsPoints") then
 			makefolder("OaklandsPoints")
@@ -2772,10 +2974,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		for i,v in pairs(Files) do
 			Files[i] = string.gsub(v,"OaklandsPoints/","",1)
 		end
-		
+
 		return Files
 	end
-	
+
 	local md = Tab:CreateDropdown({
 		Name = "选择锚点",
 		Options = GetPoints(),
@@ -2783,27 +2985,27 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Placeholder = "None Selected",
 		Callback = function(Options)
 			local FileName = Options[1]
-			
+
 			if FileName then
 				local FileContents = readfile(`OaklandsPoints/{FileName}`)
-				
+
 				if FileContents and FileContents ~= "" then
 					local xyz = string.split(FileContents,",")
-					
+
 					local x,y,z = tonumber(xyz[1]),tonumber(xyz[2]),tonumber(xyz[3])
 					tppoint = CFrame.new(x,y,z)
 				end
 			end
 		end,
 	})
-	
+
 	Tab:CreateButton({
 		Name = "刷新",
 		Callback = function()
 			md:Set({Options = GetPoints()})
 		end,
 	})
-	
+
 	Tab:CreateToggle({
 		Name = "运输物品到锚点",
 		CurrentValue = TPItemToPoint,
@@ -2811,7 +3013,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			TPItemToPoint = Value
 		end,
 	})
-	
+
 	Tab:CreateInput({
 		Name = "锚点名字",
 		CurrentValue = PointName,
@@ -2820,7 +3022,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			PointName = Text
 		end,
 	})
-	
+
 	local function CanTeleport()
 		return Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
 	end
@@ -2830,7 +3032,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		Callback = function()
 			if PointName ~= "" and CanTeleport() then
 				writefile(`OaklandsPoints/{PointName}.cfg`,tostring(Player.Character.HumanoidRootPart.Position))
-				
+
 				md:Set({Options = GetPoints()})
 			end
 		end,
@@ -2844,9 +3046,6 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	Tab:CreateButton({
 		Name = "切换单人服",
 		Callback = function()
-			local scr = game:GetService("ReplicatedFirst"):FindFirstChild("Client")
-			local Client = require(scr)
-
 			Client:TellServer("PlaySolo")
 		end,
 	})
@@ -2936,28 +3135,103 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		return element
 	end)
-	local Cache = {}
-	local Translator:Translator
+	
+	local function GetSize(v:Model)
+		local Size = 0
 
-	local Translations = Client:RequestModule("Translations")
+		if v:IsA("BasePart") then
+			return v.Size.X*v.Size.Y*v.Size.Z
+		end
+
+		local IsOre = false
+
+		for i,v in v:GetChildren() do
+			if v.Name == "Section" then
+				if v:FindFirstChild("Model") then
+					IsOre = true
+					Size += GetSize(v)
+				end
+			elseif string.match(v.Name, "^SecondarySection%d+$") then
+				IsOre = true
+				Size += GetSize(v)
+			end
+		end
+
+		if IsOre then
+			return Size
+		end
+
+		if v.Name == "SmoothPlank" or v.Name == "RoughPlank" or v.Name == "Rock" or v.Name == "Ore" then
+			local P = v:FindFirstChildWhichIsA("BasePart")
+			Size = GetSize(P)
+		elseif v:FindFirstChild("Section") then
+			for i,v in v:GetChildren() do
+				if v.Name == "Section" then
+					Size += GetSize(v)
+				end
+			end
+		else
+			for i,v in v:GetChildren() do
+				if v.Name == "OctagonPart" then
+					Size += GetSize(v)
+				end
+			end
+		end
+
+		return Size
+	end
+	
+	local function GetValue(Obj)
+		if not Obj:GetAttribute("FinalValue") then
+			local OreName = Obj:GetAttribute("OreName")
+			local RockName = Obj:GetAttribute("RockName")
+			local TreeName = Obj:GetAttribute("TreeName")
+
+			local Size = GetSize(Obj)
+			
+			local FinalValue = 0
+			if TreeName then
+				local TreeData : PlayerMaterialDetails = AllMaterialData.Trees[TreeName]
+				
+				if TreeData.Stats.PlankedValue then
+					FinalValue = Size * TreeData.Stats.PlankedValue
+				elseif TreeData.Stats.MilledValue then
+					FinalValue = Size * TreeData.Stats.MilledValue
+				elseif TreeData.Stats.LogValue then
+					FinalValue = Size * TreeData.Stats.LogValue
+				end
+			elseif OreName then
+				local OreData : PlayerMaterialDetails = AllMaterialData.Ores[OreName]
+				
+				if OreData.Stats.ForgedValue then
+					FinalValue = Size * OreData.Stats.ForgedValue
+				elseif OreData.Stats.RefinedValue then
+					FinalValue = Size * OreData.Stats.RefinedValue
+				end
+			elseif RockName then
+				local RockData : PlayerMaterialDetails = AllMaterialData.Rocks[RockName]
+				
+				if RockData.Stats.ForgedValue then
+					FinalValue = Size * RockData.Stats.ForgedValue
+				elseif RockData.Stats.RefinedValue then
+					FinalValue = Size * RockData.Stats.RefinedValue
+				elseif RockData.Stats.RawValue then
+					FinalValue = Size * RockData.Stats.RawValue
+				end
+			end
+			
+			Obj:SetAttribute("FinalValue", FinalValue)
+		end
+		
+		return Obj:GetAttribute("FinalValue")
+	end
+
 
 	local function OakEsp(v,Color,Text,translate,infos)
 		Text = Text or v:GetAttribute("OreName") or v:GetAttribute("AltName") or v.Name
-
+		
 		if translate then
-			if not Translator then
-				Translator = LocalizationService:GetTranslatorForPlayer(Player)
-			end
-
-			if not Cache[Text] then
-				local FinalName = Translations:GetTranslation(
-					Text
-				)
-				local sourceTranslation = Translator:Translate(game, FinalName)
-				Cache[Text] = sourceTranslation
-			end
-
-			Text = Cache[Text]
+			Text = _Translator(Text)
 		end
 
 		EspLib:WrapObject({
@@ -3004,7 +3278,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		if Type == "结构" then Color = Color3.new(0,0,1) end
 		if Type == "水果" then Color = Color3.new(1, 0.5, 0.5) end
 		if Type == "其他" then Color = Color3.new(1,1,1) end
-		
+
 		if Type == "星星" then
 			Color = Color3.new(1, 1, 0.5) 
 			Infos[1].Color = Item:FindFirstChildOfClass("MeshPart").Color
@@ -3013,40 +3287,82 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 		OakEsp(Item,Color,nil,true,Infos)
 	end
 	
-	local teleported = false
+	local function GetGradientColor(value: number): Color3
+		local maxValue = 1_000_000
+		local t = math.clamp(value / maxValue, 0, 1)
+
+		local colors = {
+			Color3.fromRGB(0, 100, 255),
+			Color3.fromRGB(0, 255, 255),
+			Color3.fromRGB(0, 255, 0),
+			Color3.fromRGB(255, 255, 0),
+			Color3.fromRGB(255, 140, 0),
+			Color3.fromRGB(255, 0, 0),
+		}
+
+		local segmentCount = #colors - 1
+		local scaled = t * segmentCount
+		local index = math.floor(scaled)
+		local alpha = scaled - index
+
+		if index >= segmentCount then
+			return colors[#colors]
+		end
+
+		return colors[index + 1]:Lerp(colors[index + 2], alpha)
+	end
 	
+	local function GetDropChance(Name)
+		local Data : PlayerMaterialDetails = AllMaterialData.Creatures[Name]
+		return Data.Drops
+	end
+	
+	local function GetTier(Name,Type)
+		local Data : PlayerMaterialDetails = AllMaterialData[Type][Name]
+		return Data.Tier
+	end
+	
+	local QuestV2 = require(RF.Client.GUI.UI.PrimaryUtilities.TopbarMenus.Quests.QuestsV2)
+	
+	local function GetTierColor(Tier)
+		local Info = QuestV2.MaterialIndexTierStyles[Tier]
+		if Info then
+			return Info.FrameBackgroundColor
+		end
+	end
+	
+	local teleported = false
+
 	table.insert(Connects,RunService.RenderStepped:Connect(function(dt)
 		local tool = Backpack.EquippedTool and Backpack.EquippedTool.Class
-	
-		
+
+
 		local function TpDragger(CFrame)
 			local ball = tool.DraggingBall
 			if not ball then return end
-			
+
 			if not tool.IsDragging then return end
-			
+
 			tool.LastRayRes = CFrame.Position
 			tool:UpdatePosition()
-			
+
 			ball:PivotTo(CFrame)
-			
+
 			if teleported then return end
-			
+
 			local CurrentPosition = Player.Character:GetPivot()
 			teleported = true
-			
+
 			Player.Character:PivotTo(CFrame)
-			
+
 			task.wait(2)
-			
+
 			teleported = false
-			
+
 			Player.Character:PivotTo(CurrentPosition)
 			tool:PrimaryAction()
-			
-			
 		end
-		
+
 		if TPItem and tpfpl then
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
@@ -3063,7 +3379,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 				end
 			end
 		end
-		
+
 		if TPItemToPoint and tppoint then
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
@@ -3074,12 +3390,23 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		if TreeEsp then
 			for i,v in workspace.World.TreeRegions:GetChildren() do
-				local Name = v.Name
 				if v:FindFirstChild("Tree") then
 					for _,v in v:GetChildren() do
 						if v.Name == "Tree" then
-							if table.find(EspFilter.Tree,Name) then
-								OakEsp(v,Color3.new(1, 0.584314, 0),nil,true)
+							local TreeName = v:GetAttribute("TreeName")
+							if table.find(EspFilter.Tree,TreeName) then
+								local FinalValue = GetValue(v)
+								local Tier = GetTier(TreeName,"Trees")
+								OakEsp(v,Color3.new(1, 0.584314, 0),nil,true,{
+									{
+										Text = tostring(FinalValue).."$",
+										Color = GetGradientColor(FinalValue),
+									},
+									{
+										Text = "Tier "..Tier,
+										Color = GetTierColor(Tier),
+									}
+								})
 							else
 								EspLib:UnwrapObject(v)
 							end
@@ -3089,14 +3416,32 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			end
 		end
 
-		if OreEsp then
+		if OreEsp or RockEsp then
 			for i,v in workspace.World.RockRegions:GetChildren() do
-				local Name = v.Name
 				if v:FindFirstChild("") then
 					for _,v in v:GetChildren() do
 						if v.Name == "" then
-							if table.find(EspFilter.Ore,Name) then
-								OakEsp(v,Color3.new(0.478431, 0.478431, 0.478431),nil,true)
+							local RockName = v:GetAttribute("RockName")
+							local OreName = v:GetAttribute("OreName")
+							if 
+								(RockEsp and table.find(EspFilter.Rock,RockName)) or 
+								(OreEsp and table.find(EspFilter.Ore,OreName)) 
+							then
+								local FinalValue = GetValue(v)
+								
+								local Color = v:GetAttribute("RockName") and Color3.new(0.478431, 0.478431, 0.478431) or Color3.new(0, 1, 1)
+								local Tier = GetTier(OreName or RockName,OreName and "Ores" or "Rocks")
+
+								OakEsp(v,Color,nil,true,{
+									{
+										Text = tostring(FinalValue).."$",
+										Color = GetGradientColor(FinalValue),
+									},
+									{
+										Text = "Tier "..Tier,
+										Color = GetTierColor(Tier),
+									}
+								})
 							else
 								EspLib:UnwrapObject(v)
 							end
@@ -3138,7 +3483,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 						end
 
 						if table.find(EspFilter.Enemy, "可抓捕") then
-							OakEsp(v, Color3.new(0.435294, 1, 0))
+							OakEsp(v, Color3.new(0.435294, 1, 0),nil,true)
 							continue
 						end
 					else
@@ -3147,7 +3492,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 						end
 
 						if table.find(EspFilter.Enemy, "普通") then
-							OakEsp(v, Color3.new(1, 0, 0))
+							OakEsp(v, Color3.new(1, 0, 0),nil,true)
 						end
 						continue
 					end
