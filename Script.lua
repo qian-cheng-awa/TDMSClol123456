@@ -3148,7 +3148,9 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		if Type == "星星" then
 			Color = Color3.new(1, 1, 0.5) 
-			Infos[1].Color = Item:FindFirstChildOfClass("MeshPart").Color
+			if Item:FindFirstChildOfClass("MeshPart") then
+				Infos[1].Color = Item:FindFirstChildOfClass("MeshPart").Color
+			end
 		end
 
 		OakEsp(Item,Color,nil,true,Infos)
@@ -3221,6 +3223,10 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 			tool.LastRayRes = CFrame.Position
 			tool:UpdatePosition()
+			
+			if ball:FindFirstChild("AlignPosition") then
+				ball.AlignPosition.Enabled = false
+			end
 
 			ball:PivotTo(CFrame)
 
