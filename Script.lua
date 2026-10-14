@@ -3216,22 +3216,23 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 
 		local function TpDragger(CFrame)
+			if not tool then return end
+			
 			local ball = tool.DraggingBall
-			if not ball then return end
-
-			if not tool.IsDragging then return end
-
+			
 			tool.LastRayRes = CFrame.Position
 			tool:UpdatePosition()
 			
+			if not ball then return end
+
 			if ball:FindFirstChild("AlignPosition") then
 				ball.AlignPosition.Enabled = false
 			end
-
-			ball:PivotTo(CFrame)
+			ball.CFrame = CFrame
 
 			if teleported then return end
-
+			if not tool.IsDragging then return end
+			
 			local CurrentPosition = Player.Character:GetPivot()
 			teleported = true
 
@@ -3256,6 +3257,8 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 					for i,a in filter do
 						if a.Owner.Value.Name == tpfpl.Name then
 							TpDragger(a.BoundingBox.CFrame)
+							
+							v:PivotTo(a.BoundingBox.CFrame)
 						end
 					end
 				end
@@ -3266,6 +3269,8 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
 					TpDragger(tppoint)
+					
+					v:PivotTo(tppoint)
 				end
 			end
 		end
