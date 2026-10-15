@@ -3235,6 +3235,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			
 			local CurrentPosition = Player.Character:GetPivot()
 			teleported = true
+			
+			local Head = Player.Character:FindFirstChild("Head")
+			
+			if Head then
+				Head.Anchored = true
+			end
 
 			Player.Character:PivotTo(CFrame)
 
@@ -3243,6 +3249,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			teleported = false
 
 			Player.Character:PivotTo(CurrentPosition)
+			
+			local Head = Player.Character:FindFirstChild("Head")
+
+			if Head then
+				Head.Anchored = false
+			end
+			
 			tool:PrimaryAction()
 		end
 
