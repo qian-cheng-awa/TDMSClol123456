@@ -2,69 +2,6 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
-local oldGetChildren
-oldGetChildren = hookfunction(game.GetChildren, function(self, ...)
-	if checkcaller() then return oldGetChildren(self,...) end
-	local children = oldGetChildren(self, ...)
-	local filtered = {}
-	for _, child in ipairs(children) do
-		if child.ClassName ~= "VirtualInputManager" and child.ClassName ~= "VirtualUser" then
-			table.insert(filtered, child)
-		end
-	end
-	return filtered
-end)
-
-local bold;bold = hookmetamethod(game,"__index",function(self,key)
-	if checkcaller() then return bold(self,key) end
-	if self == game and (key == "VirtualInputManager" or key == "VirtualUser") then
-		error(`{key} is not a valid member of DataModel "{game.Name}"`)
-	end
-	return bold(self,key)
-end)
-
-local bold1;bold1 = hookmetamethod(game,"__namecall",function(self,...)
-	if checkcaller() then return bold1(self,...) end
-	local method = getnamecallmethod()
-	if string.lower(method) == "findservice" and self == game and ((...) == "VirtualInputManager" or (...) == "VirtualUser") then
-		return nil
-	end
-
-	if string.lower(method) == "getchildren" and self == game then
-		local children = bold1(self, ...)
-		local filtered = {}
-		for _, v in ipairs(children) do
-			if v.ClassName ~= "VirtualInputManager" and v.ClassName ~= "VirtualUser" then
-				filtered[#filtered + 1] = v
-			end
-		end
-		return filtered
-	end
-
-	if string.lower(method) == "getdescendants" and self == game then
-		local descendants = bold1(self, ...)
-		local filtered = {}
-		for _, v in ipairs(descendants) do
-			if v.ClassName ~= "VirtualInputManager" and v.ClassName ~= "VirtualUser" then
-				filtered[#filtered + 1] = v
-			end
-		end
-		return filtered
-	end
-
-	if (string.lower(method) == "findfirstchild" or 
-		string.lower(method) == "findfirstchildwhichisA" or string.lower(method) == "findfirstchildofclass" or
-		string.lower(method) == "waitforchild") and 
-		self == game then
-
-		if ((...) == "VirtualInputManager" or (...) == "VirtualUser") then
-			return nil
-		end
-	end
-
-	return bold1(self,...)
-end)
-
 local RS = game:GetService("ReplicatedStorage")
 local RF = game:GetService("ReplicatedFirst")
 local RunService = game:GetService("RunService")
@@ -72,12 +9,141 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService("UserInputService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalizationService = game:GetService("LocalizationService")
 local Lighting = game:GetService("Lighting")
 local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
+
+local Player = Players.LocalPlayer
+
+if not hookeddetect then
+	hookeddetect = true
+
+	local oldGetChildren
+	oldGetChildren = hookfunction(game.GetChildren, function(self, ...)
+		if checkcaller() then return oldGetChildren(self,...) end
+		local children = oldGetChildren(self, ...)
+		local filtered = {}
+		for _, child in ipairs(children) do
+			if child.ClassName ~= "VirtualInputManager" and child.ClassName ~= "VirtualUser" then
+				table.insert(filtered, child)
+			end
+		end
+		return filtered
+	end)
+
+	local bold;bold = hookmetamethod(game,"__index",function(self,key)
+		if checkcaller() then return bold(self,key) end
+		if self == game and (key == "VirtualInputManager" or key == "VirtualUser") then
+			error(`{key} is not a valid member of DataModel "{game.Name}"`)
+		end
+		return bold(self,key)
+	end)
+
+	local bold1;bold1 = hookmetamethod(game,"__namecall",function(self,...)
+		if checkcaller() then return bold1(self,...) end
+		local method = getnamecallmethod()
+		if string.lower(method) == "findservice" and self == game and ((...) == "VirtualInputManager" or (...) == "VirtualUser") then
+			return nil
+		end
+
+		if string.lower(method) == "getchildren" and self == game then
+			local children = bold1(self, ...)
+			local filtered = {}
+			for _, v in ipairs(children) do
+				if v.ClassName ~= "VirtualInputManager" and v.ClassName ~= "VirtualUser" then
+					filtered[#filtered + 1] = v
+				end
+			end
+			return filtered
+		end
+
+		if string.lower(method) == "getdescendants" and self == game then
+			local descendants = bold1(self, ...)
+			local filtered = {}
+			for _, v in ipairs(descendants) do
+				if v.ClassName ~= "VirtualInputManager" and v.ClassName ~= "VirtualUser" then
+					filtered[#filtered + 1] = v
+				end
+			end
+			return filtered
+		end
+
+		if (string.lower(method) == "findfirstchild" or 
+			string.lower(method) == "findfirstchildwhichisA" or string.lower(method) == "findfirstchildofclass" or
+			string.lower(method) == "waitforchild") and 
+			self == game then
+
+			if ((...) == "VirtualInputManager" or (...) == "VirtualUser") then
+				return nil
+			end
+		end
+
+		return bold1(self,...)
+	end)
+
+	if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
+		local sc = require(RF.Client)
+		if not sc.GetModule then
+			Player:Kick("游戏已更新！脚本过时")
+			return
+		end
+
+		const tohook = getupvalue(sc.GetModule,1)
+
+		if not ishooked(tohook) then
+			task.spawn(function()
+				StarterGui:SetCore("SendNotification",{
+					Title = "TDM",
+					Text = "已拦截第三方检测",
+				})
+			end)
+			hookfunction(tohook,function()
+				if checkcaller() then
+				end
+			end)
+		end
+
+		local remote = RS:FindFirstChild("HAX")
+		local IsA = game.IsA
+		local GetFullName = game.GetFullName
+		if remote then
+			task.spawn(function()
+				StarterGui:SetCore("SendNotification",{
+					Title = "TDM",
+					Text = "找到事件！已拦截封禁",
+				})
+			end)
+			local old;old = hookmetamethod(game,"__namecall",newcclosure(function(r,...)
+				local namecallmethod = string.lower(getnamecallmethod())
+				if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then
+					local banfunc = debug.info(3,"f")
+					task.spawn(function()
+						StarterGui:SetCore("SendNotification",{
+							Title = "封禁拦截",
+							Text = `已拦截并禁用封禁函数 ： {string.gsub(tostring(banfunc),"function: ","")}`,
+						})
+					end)
+
+					fuckyou()
+				else
+					return old(r,...)
+				end
+			end))
+		else
+			task.spawn(function()
+				StarterGui:SetCore("SendNotification",{
+					Title = "TDM",
+					Text = "未找到事件！尝试重进游戏并等待游戏加载完成再执行脚本",
+				})
+			end)
+		end
+	end
+end
+
+
 local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local Starlight
 local TDMRunId = HttpService:GenerateGUID(true)
@@ -91,7 +157,6 @@ getgenv().LoadedUrl = AlrLoaded
 local AlrLoaded1 = LoadedUrlSTR or {}
 getgenv().LoadedUrlSTR = AlrLoaded1
 
-local Player = Players.LocalPlayer
 local Mouse = cloneref(Player:GetMouse())
 
 local PlayerPing = Player:GetNetworkPing()
@@ -109,63 +174,7 @@ end
 
 local ScreenSize = workspace.CurrentCamera.ViewportSize
 
-if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
-	local sc = require(RF.Client)
-	if not sc.GetModule then
-		Player:Kick("游戏已更新！脚本过时")
-		return
-	end
 
-	const tohook = getupvalue(sc.GetModule,1)
-
-	if not ishooked(tohook) then
-		task.spawn(function()
-			StarterGui:SetCore("SendNotification",{
-				Title = "TDM",
-				Text = "已拦截第三方检测",
-			})
-		end)
-		hookfunction(tohook,function()
-			if checkcaller() then
-			end
-		end)
-	end
-
-	local remote = RS:FindFirstChild("HAX")
-	local IsA = game.IsA
-	local GetFullName = game.GetFullName
-	if remote then
-		task.spawn(function()
-			StarterGui:SetCore("SendNotification",{
-				Title = "TDM",
-				Text = "找到事件！已拦截封禁",
-			})
-		end)
-		local old;old = hookmetamethod(game,"__namecall",newcclosure(function(r,...)
-			local namecallmethod = string.lower(getnamecallmethod())
-			if IsA(r,"RemoteEvent") and namecallmethod == "fireserver" and r == remote then
-				local banfunc = debug.info(3,"f")
-				task.spawn(function()
-					StarterGui:SetCore("SendNotification",{
-						Title = "封禁拦截",
-						Text = `已拦截并禁用封禁函数 ： {string.gsub(tostring(banfunc),"function: ","")}`,
-					})
-				end)
-
-				fuckyou()
-			else
-				return old(r,...)
-			end
-		end))
-	else
-		task.spawn(function()
-			StarterGui:SetCore("SendNotification",{
-				Title = "TDM",
-				Text = "未找到事件！尝试重进游戏并等待游戏加载完成再执行脚本",
-			})
-		end)
-	end
-end
 
 local isnetworkowner = function(Part:Part)
 	if Part:IsA("Model") then
