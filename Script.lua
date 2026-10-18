@@ -1518,7 +1518,10 @@ local Groupbox = MainTab:CreateGroupbox({
 })
 local ExcludeSelf = true
 local PlayerEspFunc = function(v)
-	if v == Player and ExcludeSelf then return end
+	if v:IsA("Model") then
+		v = Players:GetPlayerFromCharacter(v)
+	end
+	if v and v == Player and ExcludeSelf then return end
 	EspLib:WrapObject({
 		Object = v.Character,
 		DisplayText = `{v.DisplayName}{(v.DisplayName == v.Name and "" or "(@"..v.Name..")")}`,
@@ -1556,32 +1559,34 @@ local function ESPManger(Folders,CheckFunction,EspFunction,GetEnable)
 	end
 end
 
+local function UpdateEspPlayer()
+	if NormalEspPlayer then
+		for i,v in ipairs(Players:GetPlayers()) do
+			if v.Character then
+				task.spawn(function()
+					local HumanoidRootPart = v.Character:FindFirstChild("HumanoidRootPart")
+					if not HumanoidRootPart then
+						return
+					end
+					PlayerEspFunc(v)
+				end)
+			end
+		end
+	else
+		for i,v in ipairs(Players:GetPlayers()) do
+			if v.Character then
+				EspLib:UnwrapObject(v.Character)
+			end
+		end
+	end
+end
 
 Groupbox:CreateToggle({
 	Name = "透视玩家",
 	CurrentValue = false,
 	Callback = function(Value)
 		NormalEspPlayer = Value
-		if NormalEspPlayer then
-			for i,v in ipairs(Players:GetPlayers()) do
-				if v.Character then
-					task.spawn(function()
-						local Humanoid = v.Character:FindFirstChild("Humanoid")
-						local HumanoidRootPart = v.Character:FindFirstChild("HumanoidRootPart")
-						if not Humanoid or not HumanoidRootPart then
-							return
-						end
-						PlayerEspFunc(v)
-					end)
-				end
-			end
-		else
-			for i,v in ipairs(Players:GetPlayers()) do
-				if v.Character then
-					EspLib:UnwrapObject(v.Character)
-				end
-			end
-		end
+		UpdateEspPlayer()
 	end    
 })
 
@@ -1590,6 +1595,9 @@ Groupbox:CreateToggle({
 	CurrentValue = ExcludeSelf,
 	Callback = function(Value)
 		ExcludeSelf = Value
+		if Value then
+			EspLib:UnwrapObject(Player.Character)
+		end
 	end    
 })
 
@@ -1629,24 +1637,25 @@ table.insert(TDMConnections,UserInputService.InputEnded:Connect(function(input)
 		end
 	end
 end))
-table.insert(TDMConnections,Players.PlayerAdded:Connect(function(v)
-	TDMConnections[v] = v.CharacterAdded:Connect(function(Character)
-		local Humanoid = Character:WaitForChild("Humanoid")
-		local HRP = Character:WaitForChild("HumanoidRootPart")
-		if NormalEspPlayer then
-			PlayerEspFunc(v)
-		end
-	end)
-end))
+
+local OnCharacterAddedEsp = function(v)
+	local HRP = v:FindFirstChild("HumanoidRootPart")
+	if NormalEspPlayer then
+		PlayerEspFunc(v)
+	end
+end
+
+local OnPlayerAddedEsp = function(v)
+	TDMConnections[v] = v.CharacterAdded:Connect(OnCharacterAddedEsp)
+	if v.Character then
+		OnCharacterAddedEsp(v.Character)
+	end
+end
+
+table.insert(TDMConnections,Players.PlayerAdded:Connect(OnPlayerAddedEsp)
 
 for i,v in ipairs(Players:GetPlayers()) do
-	TDMConnections[v] = v.CharacterAdded:Connect(function(Character)
-		local Humanoid = Character:WaitForChild("Humanoid")
-		local HRP = Character:WaitForChild("HumanoidRootPart")
-		if NormalEspPlayer then
-			PlayerEspFunc(v)
-		end
-	end)
+	OnPlayerAddedEsp(v)
 end
 table.insert(TDMConnections,Players.PlayerRemoving:Connect(function(Pl)
 	if TDMConnections[Pl] then
