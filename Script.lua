@@ -1652,7 +1652,7 @@ local OnPlayerAddedEsp = function(v)
 	end
 end
 
-table.insert(TDMConnections,Players.PlayerAdded:Connect(OnPlayerAddedEsp)
+table.insert(TDMConnections,Players.PlayerAdded:Connect(OnPlayerAddedEsp))
 
 for i,v in ipairs(Players:GetPlayers()) do
 	OnPlayerAddedEsp(v)
