@@ -1342,6 +1342,12 @@ local Groupbox = MainTab:CreateGroupbox({
 	Column = 1,
 })
 
+if not GuiMain:FindFirstChild("TDMEspFolder") then
+	EspFolder = Instance.new("ScreenGui",GuiMain)
+	EspFolder.Name = "TDMEspFolder"
+end
+
+local EspFolder = GuiMain:FindFirstChild("TDMEspFolder")
 local mainaimbot = false
 local aimbuttonscreen = Instance.new("ScreenGui",EspFolder)
 aimbuttonscreen.IgnoreGuiInset = true
@@ -1565,29 +1571,26 @@ Groupbox:CreateToggle({
 		end
 	end    
 })
-local EspRay = false
 
 Groupbox:CreateToggle({
 	Name = "透视射线",
-	CurrentValue = false,
+	CurrentValue = EspLib.Ray.Enabled,
 	Callback = function(Value)
-		EspRay = Value
+		EspLib.Ray.Enabled = Value
 	end    
 })
 
 Groupbox:CreateSlider({
 	Name = "射线粗细",
 	Range = {0, 10},
-	CurrentValue = 0.5,
+	CurrentValue = EspLib.Ray.Thickness,
 	Increment = 0.1,
 	Suffix = "",
 	Callback = function(Value)
-		LineWidth = Value
+		EspLib.Ray.Thickness = Value
 	end    
 })
 
-local PlayerEsp = Instance.new("Folder",EspFolder)
-PlayerEsp.Name = "Players"
 local lockedplayer
 
 table.insert(TDMConnections,UserInputService.InputBegan:Connect(function(input)
@@ -3217,12 +3220,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 		local function TpDragger(CFrame)
 			if not tool then return end
-			
+
 			local ball = tool.DraggingBall
-			
+
 			tool.LastRayRes = CFrame.Position
 			tool:UpdatePosition()
-			
+
 			if not ball then return end
 
 			if ball:FindFirstChild("AlignPosition") then
@@ -3232,12 +3235,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 
 			if teleported then return end
 			if not tool.IsDragging then return end
-			
+
 			local CurrentPosition = Player.Character:GetPivot()
 			teleported = true
-			
+
 			local Head = Player.Character:FindFirstChild("Head")
-			
+
 			if Head then
 				Head.Anchored = true
 			end
@@ -3249,13 +3252,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			teleported = false
 
 			Player.Character:PivotTo(CurrentPosition)
-			
+
 			local Head = Player.Character:FindFirstChild("Head")
 
 			if Head then
 				Head.Anchored = false
 			end
-			
+
 			tool:PrimaryAction()
 		end
 
@@ -3270,7 +3273,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 					for i,a in filter do
 						if a.Owner.Value.Name == tpfpl.Name then
 							TpDragger(a.BoundingBox.CFrame)
-							
+
 							v:PivotTo(a.BoundingBox.CFrame)
 						end
 					end
@@ -3282,7 +3285,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 			for i,v in workspace.World.LooseItems:GetChildren() do
 				if isnetworkowner(v) and v:GetAttribute("ActivelyDragging") then
 					TpDragger(tppoint)
-					
+
 					v:PivotTo(tppoint)
 				end
 			end
