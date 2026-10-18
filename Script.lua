@@ -1507,8 +1507,9 @@ local Groupbox = MainTab:CreateGroupbox({
 	Name = "",
 	Column = 1,
 })
-
+local ExcludeSelf = true
 local PlayerEspFunc = function(v)
+	if v == Player and ExcludeSelf then return end
 	EspLib:WrapObject({
 		Object = v.Character,
 		DisplayText = `{v.DisplayName}{(v.DisplayName == v.Name and "" or "(@"..v.Name..")")}`,
@@ -1556,8 +1557,11 @@ Groupbox:CreateToggle({
 			for i,v in ipairs(Players:GetPlayers()) do
 				if v.Character then
 					task.spawn(function()
-						local Humanoid = v.Character:WaitForChild("Humanoid")
-						local HumanoidRootPart = v.Character:WaitForChild("HumanoidRootPart")
+						local Humanoid = v.Character:FindFirstChild("Humanoid")
+						local HumanoidRootPart = v.Character:FindFirstChild("HumanoidRootPart")
+						if not Humanoid or not HumanoidRootPart then
+							return
+						end
 						PlayerEspFunc(v)
 					end)
 				end
@@ -1569,6 +1573,14 @@ Groupbox:CreateToggle({
 				end
 			end
 		end
+	end    
+})
+
+Groupbox:CreateToggle({
+	Name = "排除自己",
+	CurrentValue = ExcludeSelf,
+	Callback = function(Value)
+		ExcludeSelf = Value
 	end    
 })
 
