@@ -737,7 +737,7 @@ local Offset1,Offset2,Offset3,Offset4 = 5,0,0,0
 
 Groupbox:CreateSlider({
 	Name = "前后偏移",
-	Range = {-1000, 1000},
+	Range = {-100, 100},
 	CurrentValue = Offset1,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = .1,
@@ -747,7 +747,7 @@ Groupbox:CreateSlider({
 })
 Groupbox:CreateSlider({
 	Name = "左右偏移",
-	Range = {-1000, 1000},
+	Range = {-100, 100},
 	CurrentValue = Offset2,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = .1,
@@ -757,7 +757,7 @@ Groupbox:CreateSlider({
 })
 Groupbox:CreateSlider({
 	Name = "上下偏移",
-	Range = {-1000, 1000},
+	Range = {-100, 100},
 	CurrentValue = Offset3,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = .1,
