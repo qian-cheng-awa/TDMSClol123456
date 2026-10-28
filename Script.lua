@@ -698,11 +698,17 @@ Groupbox:CreateButton({
 local tptotarget = false
 local fixtsb = false
 
+local FakeCharacter
+
 Groupbox:CreateToggle({
 	Name = "锁人",
 	CurrentValue = tptotarget,
 	Callback = function(Value)
 		tptotarget = Value
+		if not Value and FakeCharacter then
+			FakeCharacter:Destroy()
+			FakeCharacter = nil
+		end
 	end    
 })
 Groupbox:CreateToggle({
@@ -713,8 +719,8 @@ Groupbox:CreateToggle({
 	end    
 })
 
-
 local Offset1,Offset2,Offset3,Offset4 = 5,0,0,0
+
 Groupbox:CreateSlider({
 	Name = "前后偏移",
 	Range = {-1000, 1000},
@@ -1726,6 +1732,18 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 					else
 						local RealCFrame = CFrame.new(0,0,0)
 						finalcframe = RealCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
+					end
+					
+					if fixtsb and not FakeCharacter then
+						local oldArchivable = Player.Character.Archivable
+						Player.Character.Archivable = true
+						FakeCharacter = Player.Character:Clone()
+						FakeCharacter.Parent = workspace
+						Player.Character.Archivable = oldArchivable
+						
+						FakeCharacter.HumanoidRootPart.Anchored = true
+						FakeCharacter.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+						FakeCharacter.HumanoidRootPart.CFrame = finalcframe
 					end
 
 					HRP.CFrame = finalcframe
