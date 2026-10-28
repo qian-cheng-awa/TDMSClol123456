@@ -1717,18 +1717,17 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 			if TargetHRP then
 				pcall(function()
 					sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
-					
+
 					local finalcframe
 					local TargetCFrame = TargetHRP.CFrame
-					
+
 					if not fixtsb then
 						finalcframe = TargetCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
 					else
-						local Position = TargetCFrame.Position
-						local RealCFrame = (CFrame.new(Vector3.new(-Position.X,-Position.Y,-Position.Z))*TargetCFrame.Rotation)
+						local RealCFrame = CFrame.new(0,0,0)
 						finalcframe = RealCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
 					end
-					
+
 					HRP.CFrame = finalcframe
 				end)
 			end
