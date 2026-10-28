@@ -705,10 +705,10 @@ Groupbox:CreateToggle({
 	end    
 })
 
-local Offset1,Offset2,Offset3 = 5,0,0
+local Offset1,Offset2,Offset3,Offset4 = 5,0,0,0
 Groupbox:CreateSlider({
 	Name = "前后偏移",
-	Range = {-50, 50},
+	Range = {-1000, 1000},
 	CurrentValue = Offset1,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = .1,
@@ -718,7 +718,7 @@ Groupbox:CreateSlider({
 })
 Groupbox:CreateSlider({
 	Name = "左右偏移",
-	Range = {-50, 50},
+	Range = {-1000, 1000},
 	CurrentValue = Offset2,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = .1,
@@ -727,13 +727,23 @@ Groupbox:CreateSlider({
 	end,
 })
 Groupbox:CreateSlider({
-	Name = "旋转偏移",
-	Range = {-180, 180},
-	CurrentValue = Offset2,
+	Name = "上下偏移",
+	Range = {-1000, 1000},
+	CurrentValue = Offset3,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = .1,
 	Callback = function(Value)
 		Offset3 = Value
+	end,
+})
+Groupbox:CreateSlider({
+	Name = "旋转偏移",
+	Range = {-180, 180},
+	CurrentValue = Offset4,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = .1,
+	Callback = function(Value)
+		Offset4 = Value
 	end,
 })
 
@@ -1698,7 +1708,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 			if TargetHRP then
 				pcall(function()
 					sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
-					HRP.CFrame = TargetHRP.CFrame * CFrame.new(Offset2, 0, Offset1) * CFrame.Angles(0, math.rad(Offset3), 0)
+					HRP.CFrame = TargetHRP.CFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
 				end)
 			end
 		end
