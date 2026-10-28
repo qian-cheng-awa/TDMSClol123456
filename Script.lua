@@ -711,6 +711,7 @@ Groupbox:CreateToggle({
 		end
 	end    
 })
+
 Groupbox:CreateToggle({
 	Name = "tsb锁人开启这个修复",
 	CurrentValue = fixtsb,
@@ -718,6 +719,19 @@ Groupbox:CreateToggle({
 		fixtsb = Value
 	end    
 })
+
+local oldsetmetatable
+oldsetmetatable = hookmetamethod(game,"__newindex",newcclosure(function(self,key,value)
+	if 
+		(tptotarget and fixtsb) and 
+		(self and key and value) and
+		(self == workspace.CurrentCamera and key == "CameraSubject" and Player.Character and Player.Character:FindFirstChild("Humanoid") and value == Player.Character.Humanoid) 
+	then
+		return
+	end
+
+	return oldsetmetatable(self,key,value)
+end))
 
 local Offset1,Offset2,Offset3,Offset4 = 5,0,0,0
 
@@ -1712,6 +1726,7 @@ local function aunpack(tbl,index)
 
 	return unpack(rv)
 end
+
 table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 	PlayerPing = Player:GetNetworkPing()
 	ScreenSize = workspace.CurrentCamera.ViewportSize
@@ -1734,16 +1749,20 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 						finalcframe = RealCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
 					end
 					
-					if fixtsb and not FakeCharacter then
-						local oldArchivable = Player.Character.Archivable
-						Player.Character.Archivable = true
-						FakeCharacter = Player.Character:Clone()
-						FakeCharacter.Parent = workspace
-						Player.Character.Archivable = oldArchivable
-						
-						FakeCharacter.HumanoidRootPart.Anchored = true
-						FakeCharacter.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-						FakeCharacter.HumanoidRootPart.CFrame = finalcframe
+					if fixtsb then
+						if FakeCharacter then
+							workspace.CurrentCamera.CameraSubject = FakeCharacter.Humanoid
+						else
+							local oldArchivable = Player.Character.Archivable
+							Player.Character.Archivable = true
+							FakeCharacter = Player.Character:Clone()
+							FakeCharacter.Parent = workspace
+							Player.Character.Archivable = oldArchivable
+
+							FakeCharacter.HumanoidRootPart.Anchored = true
+							FakeCharacter.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+							FakeCharacter.HumanoidRootPart.CFrame = finalcframe
+						end
 					end
 
 					HRP.CFrame = finalcframe
