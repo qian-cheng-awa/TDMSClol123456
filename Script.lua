@@ -1725,7 +1725,8 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 						finalcframe = TargetCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
 					else
 						local Position = TargetCFrame.Position
-						finalcframe = CFrame.new(Vector3.new(-Position.X,-Position.Y,-Position.Z)) * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0) * TargetCFrame.Rotation
+						local RealCFrame = (CFrame.new(Vector3.new(-Position.X,-Position.Y,-Position.Z))*TargetCFrame.Rotation)
+						finalcframe = RealCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
 					end
 					
 					HRP.CFrame = finalcframe
