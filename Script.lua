@@ -696,6 +696,7 @@ Groupbox:CreateButton({
 })
 
 local tptotarget = false
+local fixtsb = false
 
 Groupbox:CreateToggle({
 	Name = "锁人",
@@ -704,6 +705,14 @@ Groupbox:CreateToggle({
 		tptotarget = Value
 	end    
 })
+Groupbox:CreateToggle({
+	Name = "tsb锁人开启这个修复",
+	CurrentValue = fixtsb,
+	Callback = function(Value)
+		fixtsb = Value
+	end    
+})
+
 
 local Offset1,Offset2,Offset3,Offset4 = 5,0,0,0
 Groupbox:CreateSlider({
@@ -1708,7 +1717,18 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 			if TargetHRP then
 				pcall(function()
 					sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
-					HRP.CFrame = TargetHRP.CFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
+					
+					local finalcframe
+					local TargetCFrame = TargetHRP.CFrame
+					
+					if not fixtsb then
+						finalcframe = TargetCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
+					else
+						local Position = TargetCFrame.Position
+						finalcframe = CFrame.new(Vector3.new(-Position.X,-Position.Y,-Position.Z)) * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0) * TargetCFrame.Rotation
+					end
+					
+					HRP.CFrame = finalcframe
 				end)
 			end
 		end
