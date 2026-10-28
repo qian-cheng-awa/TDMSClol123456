@@ -1751,6 +1751,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 					
 					if fixtsb then
 						if FakeCharacter then
+							FakeCharacter.HumanoidRootPart.CFrame = finalcframe
 							workspace.CurrentCamera.CameraSubject = FakeCharacter.Humanoid
 						else
 							local oldArchivable = Player.Character.Archivable
