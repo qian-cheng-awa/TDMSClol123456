@@ -1748,7 +1748,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 						local RealCFrame = CFrame.new(0,0,0)
 						finalcframe = RealCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
 					end
-					
+
 					if fixtsb then
 						if FakeCharacter then
 							FakeCharacter.HumanoidRootPart.CFrame = TargetHRP.CFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
@@ -2461,6 +2461,12 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	end
 
 	requestCategory("Trees","Rocks","Ores","Creatures")
+	
+	task.wait(function()
+		while task.wait(1) do
+			requestCategory("Trees","Rocks","Ores","Creatures")
+		end
+	end)
 
 	repeat task.wait() until AllDone
 
