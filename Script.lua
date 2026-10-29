@@ -1145,6 +1145,10 @@ local MainTab = TabSection:CreateTab({
 	Name = "传送",
 	Columns = 1,
 })
+local Groupbox = MainTab:CreateGroupbox({
+	Name = "",
+	Column = 1,
+})
 
 local TPFolderPath = "TDMTP"
 
