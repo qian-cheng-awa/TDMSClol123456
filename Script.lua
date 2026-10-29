@@ -1208,7 +1208,7 @@ Groupbox:CreateInput({
 Groupbox:CreateButton({
 	Name = "保存位置",
 	Callback = function()
-		if TPPointName ~= "" and CanTeleport() then
+		if TPPointName ~= "" and Player.Character then
 			writefile(`{TPFolderPath}/{TPPointName}`,tostring(Player.Character:GetPivot().Position))
 
 			tppositions:Set({Options = GetTpFiles()})
