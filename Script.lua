@@ -2461,8 +2461,8 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	end
 
 	requestCategory("Trees","Rocks","Ores","Creatures")
-	
-	task.wait(function()
+
+	task.spawn(function()
 		while task.wait(1) do
 			requestCategory("Trees","Rocks","Ores","Creatures")
 		end
