@@ -1201,7 +1201,7 @@ Groupbox:CreateInput({
 		TPPointName = Text
 	end,
 })
-Tab:CreateButton({
+Groupbox:CreateButton({
 	Name = "保存位置",
 	Callback = function()
 		if TPPointName ~= "" and CanTeleport() then
