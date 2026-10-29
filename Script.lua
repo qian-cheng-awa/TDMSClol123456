@@ -1141,6 +1141,76 @@ Groupbox:CreateToggle({
 		Values.AntiAfkKick = Value
 	end,
 })
+local MainTab = TabSection:CreateTab({
+	Name = "传送",
+	Columns = 1,
+})
+
+local TPFolderPath = "TDMTP"
+
+if not isfolder("TDMTP") then
+	makefolder("TDMTP")
+end
+
+local function GetTpFiles()
+	local t = {}
+	for i,v in listfiles("TDMTP") do
+		table.insert(t,v:sub(#TPFolderPath + 2))
+	end
+	return t
+end
+
+local CurrentTpPosition
+local tppositions = Groupbox:CreateDropdown({
+	Options = GetTpFiles(),
+	Required = true,
+	MultipleOptions = false,
+	Placeholder = "None Selected",
+	Name = "选择位置",
+	Callback = function(Options)
+		local File = readfile(TPFolderPath.."/"..Options[1])
+		
+		if File then
+			local Position = string.split(File,",")
+			
+			if Position then
+				CurrentTpPosition = Vector3.new(tonumber(Position[1]),tonumber(Position[2]),tonumber(Position[3]))
+			end
+		end
+	end,
+})
+
+Groupbox:CreateButton({
+	Name = "传送",
+	Callback = function()
+		if CurrentTpPosition then
+			local char = Player.Character
+			if char then
+				char:PivotTo(CFrame.new(CurrentTpPosition))
+			end
+		end
+	end,
+})
+
+local TPPointName = ""
+Groupbox:CreateInput({
+	Name = "位置名字",
+	CurrentValue = TPPointName,
+	PlaceholderText = "",
+	Callback = function(Text)
+		TPPointName = Text
+	end,
+})
+Tab:CreateButton({
+	Name = "保存位置",
+	Callback = function()
+		if TPPointName ~= "" and CanTeleport() then
+			writefile(`{TPFolderPath}/{TPPointName}`,tostring(Player.Character:GetPivot().Position))
+
+			tppositions:Set({Options = GetTpFiles()})
+		end
+	end,
+})
 
 local MainTab = TabSection:CreateTab({
 	Name = "功能",
@@ -1245,6 +1315,30 @@ Groupbox:CreateToggle({
 local Groupbox = MainTab:CreateGroupbox({
 	Name = "飞行",
 	Column = 1,
+})
+
+
+local cfly = false
+local cflyspeed = 50
+Groupbox:CreateToggle({
+	Name = "灵魂飞行",
+	CurrentValue = cfly,
+	Callback = function(Value)
+		cfly = Value
+		if not Value and Player.Character and Player.Character:FindFirstChild("Head") then
+			Player.Character.Head.Anchored = false
+		end
+	end    
+})
+Groupbox:CreateSlider({
+	Name = "灵魂飞行速度",
+	Range = {0, 1000},
+	CurrentValue = cflyspeed,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 1,
+	Callback = function(Value)
+		cflyspeed = Value
+	end    
 })
 
 local vfly = false
@@ -1728,6 +1822,24 @@ local function aunpack(tbl,index)
 end
 
 table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
+	if cfly then
+		if not Player.Character or not Player.Character:FindFirstChild("Head") then return end
+		local Head = Player.Character:FindFirstChild("Head")
+		Head.Anchored = true
+		
+		local moveDirection = Player.Character:FindFirstChildOfClass('Humanoid').MoveDirection * (cflyspeed * dt)
+		local headCFrame = Head.CFrame
+		local camera = workspace.CurrentCamera
+		local cameraCFrame = camera.CFrame
+		local cameraOffset = headCFrame:ToObjectSpace(cameraCFrame).Position
+		cameraCFrame = cameraCFrame * CFrame.new(-cameraOffset.X, -cameraOffset.Y, -cameraOffset.Z + 1)
+		local cameraPosition = cameraCFrame.Position
+		local headPosition = headCFrame.Position
+
+		local objectSpaceVelocity = CFrame.new(cameraPosition, Vector3.new(headPosition.X, cameraPosition.Y, headPosition.Z)):VectorToObjectSpace(moveDirection)
+		Head.CFrame = CFrame.new(headPosition) * (cameraCFrame - cameraPosition) * CFrame.new(objectSpaceVelocity)
+	end
+	
 	PlayerPing = Player:GetNetworkPing()
 	ScreenSize = workspace.CurrentCamera.ViewportSize
 
