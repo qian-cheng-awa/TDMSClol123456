@@ -637,33 +637,6 @@ local function Message(_Title, _Text, Time)
 	StarterGui:SetCore("SendNotification", {Title = _Title, Text = _Text, Duration = Time})
 end
 
-if identifyexecutor() == "Delta" then
-	local Groupbox = MainTab:CreateGroupbox({
-		Name = "忍者功能",
-		Column = 1,
-	})
-
-	local imageid
-	Groupbox:CreateInput({
-		Name = "图像id",
-		CurrentValue = "",
-		PlaceholderText = "输入数字",
-		Callback = function(Text)
-			imageid = Text
-		end,
-	})
-
-	Groupbox:CreateButton({
-		Name = "更改忍者图标为输入的roblox图像资源",
-		Tooltip = "更改后重启roblox",
-		Callback = function()
-			if imageid and imageid ~= "" then
-				writefile("new_logo.png", game:HttpGet("https://assetdelivery.roblox.com/v1/asset/?id="..imageid))
-			end
-		end,
-	})
-end
-
 local Groupbox = MainTab:CreateGroupbox({
 	Name = "",
 	Column = 1,
@@ -775,8 +748,6 @@ Groupbox:CreateSlider({
 		Offset4 = Value
 	end,
 })
-
-
 
 local Groupbox = MainTab:CreateGroupbox({
 	Name = "狙击",
@@ -1141,6 +1112,239 @@ Groupbox:CreateToggle({
 		Values.AntiAfkKick = Value
 	end,
 })
+
+local MainTab = TabSection:CreateTab({
+	Name = "画质",
+	Columns = 1,
+})
+
+
+local Groupbox = MainTab:CreateGroupbox({
+	Name = "体积光渲染",
+	Column = 1,
+})
+local VolumetricEnabled = false
+local VolumetricAmount = 50
+local VolumetricColor = Color3.fromRGB(200,200,200)
+local VolumetricOverscan = 1.15
+local VolumetricSpread = 0.5
+local VolumetricTransparency = 0.996
+local FOG_BASE_DISTANCE = 4
+
+local cachedTransparency = NumberSequence.new(VolumetricTransparency)
+local cachedColor = ColorSequence.new(VolumetricColor)
+
+local function updateSequences()
+	cachedTransparency = NumberSequence.new(VolumetricTransparency)
+	cachedColor = ColorSequence.new(VolumetricColor)
+end
+
+local lastViewport = Vector2.zero
+local lastFOV = 0
+
+local FogPart
+
+local function updateFogPartSize()
+	local Camera = workspace.CurrentCamera
+	local viewport = Camera.ViewportSize
+	local fov = Camera.FieldOfView
+
+	if viewport == lastViewport and fov == lastFOV then
+		return
+	end
+
+	lastViewport = viewport
+	lastFOV = fov
+
+	local height =
+		2 * math.tan(math.rad(fov / 2)) * FOG_BASE_DISTANCE
+
+	local width =
+		height * (viewport.X / viewport.Y)
+
+	FogPart.Size = Vector3.new(width, height, 0.1)
+end
+
+local function getBeamDimensions(distance)
+	local Camera = workspace.CurrentCamera
+	local viewport = Camera.ViewportSize
+	local fov = Camera.FieldOfView
+
+	local baseHeight =
+		2 * math.tan(math.rad(fov / 2)) * FOG_BASE_DISTANCE
+
+	local baseWidth =
+		baseHeight * (viewport.X / viewport.Y)
+
+	local scale =
+		(distance / FOG_BASE_DISTANCE) * VolumetricOverscan
+
+	return (baseWidth * 2) * scale, baseHeight * scale
+end
+
+local beams = {}
+
+local function rebuildFog()
+	updateFogPartSize()
+
+	for i = 1, VolumetricAmount do
+		local beam = beams[i]
+
+		if not beam then
+			local top = Instance.new("Attachment")
+			local bottom = Instance.new("Attachment")
+			local newBeam = Instance.new("Beam")
+
+			top.Parent = FogPart
+			bottom.Parent = FogPart
+			newBeam.Parent = FogPart
+
+			newBeam.Attachment0 = top
+			newBeam.Attachment1 = bottom
+
+			newBeam.FaceCamera = true
+			newBeam.LightInfluence = 1
+			newBeam.LightEmission = 1
+			newBeam.Texture = "rbxassetid://15307205043"
+			newBeam.TextureLength = 1
+			newBeam.TextureMode = Enum.TextureMode.Stretch
+
+			beams[i] = newBeam
+			beam = newBeam
+		end
+
+		local zOffset =
+			-FOG_BASE_DISTANCE - ((i - 1) * VolumetricSpread)
+
+		local distance = math.abs(zOffset)
+
+		local width, height =
+			getBeamDimensions(distance)
+
+		beam.Width0 = width
+		beam.Width1 = width
+
+		beam.Attachment0.Position =
+			Vector3.new(
+				0,
+				height,
+				zOffset
+			)
+
+		beam.Attachment1.Position =
+			Vector3.new(
+				0,
+				-height,
+				zOffset
+			)
+
+		beam.Transparency = cachedTransparency
+		beam.Color = cachedColor
+	end
+
+	for i = VolumetricAmount + 1, #beams do
+		local beam = beams[i]
+
+		beam.Attachment0:Destroy()
+		beam.Attachment1:Destroy()
+		beam:Destroy()
+
+		beams[i] = nil
+	end
+end
+
+Groupbox:CreateToggle({
+	Name = "启用(更改设置请重新开启)",
+	CurrentValue = VolumetricEnabled,
+	Callback = function(Value)
+		VolumetricEnabled = Value
+		if Value then
+			FogPart = Instance.new("Part")
+			FogPart.Name = "FogPart"
+			FogPart.Anchored = true
+			FogPart.CanCollide = false
+			FogPart.Transparency = 1
+			FogPart.Parent = workspace.CurrentCamera
+			
+			updateSequences()
+			
+			rebuildFog()
+		elseif FogPart then
+			FogPart:Destroy()
+		end
+	end
+})
+
+Groupbox:CreateSlider({
+	Name = "数量",
+	Range = {0, 100},
+	CurrentValue = VolumetricAmount,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 1,
+	Suffix = "",
+	Callback = function(Value)
+		VolumetricAmount = Value
+	end    
+})
+
+Groupbox:CreateColorPicker({
+	Name = "颜色",
+	CurrentValue = VolumetricColor,
+	Callback = function(Value)
+		VolumetricColor = Value
+	end,
+})
+
+Groupbox:CreateSlider({
+	Name = "过扫描系数",
+	Range = {0, 10},
+	CurrentValue = VolumetricOverscan,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 0.01,
+	Suffix = "",
+	Callback = function(Value)
+		VolumetricOverscan = Value
+	end    
+})
+
+Groupbox:CreateSlider({
+	Name = "渲染间隔",
+	Range = {0, 5},
+	CurrentValue = VolumetricSpread,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 0.01,
+	Suffix = "",
+	Callback = function(Value)
+		VolumetricSpread = Value
+	end    
+})
+
+Groupbox:CreateSlider({
+	Name = "透明度",
+	Range = {0, 1},
+	CurrentValue = VolumetricTransparency,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 0.001,
+	Suffix = "",
+	Callback = function(Value)
+		VolumetricTransparency = Value
+	end
+})
+
+Groupbox:CreateSlider({
+	Name = "基础距离",
+	Range = {0, 10},
+	CurrentValue = FOG_BASE_DISTANCE,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 0.1,
+	Suffix = "",
+	Callback = function(Value)
+		FOG_BASE_DISTANCE = Value
+	end
+})
+
+
+
 local MainTab = TabSection:CreateTab({
 	Name = "传送",
 	Columns = 1,
@@ -1173,10 +1377,10 @@ local tppositions = Groupbox:CreateDropdown({
 	Name = "选择位置",
 	Callback = function(Options)
 		local File = readfile(TPFolderPath.."/"..Options[1])
-		
+
 		if File then
 			local Position = string.split(File,",")
-			
+
 			if Position then
 				CurrentTpPosition = Vector3.new(tonumber(Position[1]),tonumber(Position[2]),tonumber(Position[3]))
 			end
@@ -1431,16 +1635,16 @@ Groupbox:CreateToggle({
 			bodyg.MaxForce = Vector3.new(1000000,1000000,1000000)
 			bodyg.P = 1250
 			bodyg.Name = "FLG"
-			table.insert(TDMConnections,button.MouseButton1Down:Connect(function()
+			table.insert(Connects,button.MouseButton1Down:Connect(function()
 				down = true
 			end))
-			table.insert(TDMConnections,button.MouseLeave:Connect(function()
+			table.insert(Connects,button.MouseLeave:Connect(function()
 				down = false
 			end))
-			table.insert(TDMConnections,buttonu.MouseButton1Down:Connect(function()
+			table.insert(Connects,buttonu.MouseButton1Down:Connect(function()
 				up = true
 			end))
-			table.insert(TDMConnections,buttonu.MouseLeave:Connect(function()
+			table.insert(Connects,buttonu.MouseLeave:Connect(function()
 				up = false
 			end))
 		else
@@ -1522,10 +1726,10 @@ moveaimbutton.Image = "rbxassetid://3429558445"
 moveaimbutton.BackgroundTransparency = 1
 local moveaimbuttonvalue = false
 
-table.insert(TDMConnections,moveaimbutton.MouseButton1Down:Connect(function()
+table.insert(Connects,moveaimbutton.MouseButton1Down:Connect(function()
 	moveaimbuttonvalue = true
 end))
-table.insert(TDMConnections,moveaimbutton.InputEnded:Connect(function(input)
+table.insert(Connects,moveaimbutton.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 		moveaimbuttonvalue = false
 	end
@@ -1759,7 +1963,7 @@ Groupbox:CreateSlider({
 
 local lockedplayer
 
-table.insert(TDMConnections,UserInputService.InputBegan:Connect(function(input)
+table.insert(Connects,UserInputService.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 		local mouseposition = Vector2.new(Mouse.X,Mouse.Y)
 		if (mouseposition-aimbutton.AbsolutePosition+-aimbutton.AbsoluteSize/2).Magnitude <= aimbutton.AbsoluteSize.Y/2 then
@@ -1767,7 +1971,7 @@ table.insert(TDMConnections,UserInputService.InputBegan:Connect(function(input)
 		end
 	end
 end))
-table.insert(TDMConnections,UserInputService.InputEnded:Connect(function(input)
+table.insert(Connects,UserInputService.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 		if mainaimbotenabled and aimbuttonscreen.Enabled then
 			mainaimbotenabled = false
@@ -1783,21 +1987,21 @@ local OnCharacterAddedEsp = function(v)
 end
 
 local OnPlayerAddedEsp = function(v)
-	TDMConnections[v] = v.CharacterAdded:Connect(OnCharacterAddedEsp)
+	Connects[v] = v.CharacterAdded:Connect(OnCharacterAddedEsp)
 	if v.Character then
 		OnCharacterAddedEsp(v.Character)
 	end
 end
 
-table.insert(TDMConnections,Players.PlayerAdded:Connect(OnPlayerAddedEsp))
+table.insert(Connects,Players.PlayerAdded:Connect(OnPlayerAddedEsp))
 
 for i,v in ipairs(Players:GetPlayers()) do
 	OnPlayerAddedEsp(v)
 end
-table.insert(TDMConnections,Players.PlayerRemoving:Connect(function(Pl)
-	if TDMConnections[Pl] then
-		TDMConnections[Pl]:Disconnect()
-		TDMConnections[Pl] = nil
+table.insert(Connects,Players.PlayerRemoving:Connect(function(Pl)
+	if Connects[Pl] then
+		Connects[Pl]:Disconnect()
+		Connects[Pl] = nil
 	end
 end))
 
@@ -1825,12 +2029,16 @@ local function aunpack(tbl,index)
 	return unpack(rv)
 end
 
-table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
+table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
+	if FogPart then
+		FogPart.CFrame = workspace.CurrentCamera.CFrame
+	end
+	
 	if cfly then
 		if not Player.Character or not Player.Character:FindFirstChild("Head") then return end
 		local Head = Player.Character:FindFirstChild("Head")
 		Head.Anchored = true
-		
+
 		local moveDirection = Player.Character:FindFirstChildOfClass('Humanoid').MoveDirection * (cflyspeed * dt)
 		local headCFrame = Head.CFrame
 		local camera = workspace.CurrentCamera
@@ -1843,7 +2051,7 @@ table.insert(TDMConnections,RunService.Heartbeat:Connect(function(dt)
 		local objectSpaceVelocity = CFrame.new(cameraPosition, Vector3.new(headPosition.X, cameraPosition.Y, headPosition.Z)):VectorToObjectSpace(moveDirection)
 		Head.CFrame = CFrame.new(headPosition) * (cameraCFrame - cameraPosition) * CFrame.new(objectSpaceVelocity)
 	end
-	
+
 	PlayerPing = Player:GetNetworkPing()
 	ScreenSize = workspace.CurrentCamera.ViewportSize
 
@@ -2577,9 +2785,9 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	end
 
 	requestCategory("Trees","Rocks","Ores","Creatures")
-
+	
 	task.spawn(function()
-		while task.wait(1) do
+		while TDMRunId and task.wait(1) do
 			requestCategory("Trees","Rocks","Ores","Creatures")
 		end
 	end)
