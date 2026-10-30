@@ -607,1115 +607,1274 @@ local function Message(_Title, _Text, Time)
 	StarterGui:SetCore("SendNotification", {Title = _Title, Text = _Text, Duration = Time})
 end
 
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "",
-	Column = 1,
-})
+do
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "",
+		Column = 1,
+	})
 
-local fpl 
-local pld2 = Groupbox:CreateDropdown({
-	Special = 1,
-	Name = "黑名单",
-	Options = {},
-	Required = true,
-	MultipleOptions = false,
-	CanNoneSeleted = true,
-	Placeholder = "None Selected",
-	Callback = function(Options)
-		fpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
-	end,
-})
+	local fpl 
+	local pld2 = Groupbox:CreateDropdown({
+		Special = 1,
+		Name = "黑名单",
+		Options = {},
+		Required = true,
+		MultipleOptions = false,
+		CanNoneSeleted = true,
+		Placeholder = "None Selected",
+		Callback = function(Options)
+			fpl = unpack(Options) and Players:FindFirstChild(unpack(Options)) or nil
+		end,
+	})
 
-Groupbox:CreateButton({
-	Name = "甩飞",
-	Callback = function()
+	Groupbox:CreateButton({
+		Name = "甩飞",
+		Callback = function()
 
-		if fpl then
-			if fpl.Character then
-				SkidFling(fpl)
+			if fpl then
+				if fpl.Character then
+					SkidFling(fpl)
+				end
 			end
-		end
-	end,
-})
+		end,
+	})
 
-local tptotarget = false
-local fixtsb = false
+	local tptotarget = false
+	local fixtsb = false
 
-local FakeCharacter
+	local FakeCharacter
 
-Groupbox:CreateToggle({
-	Name = "锁人",
-	CurrentValue = tptotarget,
-	Callback = function(Value)
-		tptotarget = Value
-		if not Value and FakeCharacter then
-			FakeCharacter:Destroy()
-			FakeCharacter = nil
-		end
-	end    
-})
-
-Groupbox:CreateToggle({
-	Name = "tsb锁人开启这个修复",
-	CurrentValue = fixtsb,
-	Callback = function(Value)
-		fixtsb = Value
-	end    
-})
-
-local oldsetmetatable
-oldsetmetatable = hookmetamethod(game,"__newindex",newcclosure(function(self,key,value)
-	if 
-		(tptotarget and fixtsb) and 
-		(self and key and value) and
-		(self == workspace.CurrentCamera and key == "CameraSubject" and Player.Character and Player.Character:FindFirstChild("Humanoid") and value == Player.Character.Humanoid) 
-	then
-		return
-	end
-
-	return oldsetmetatable(self,key,value)
-end))
-
-local Offset1,Offset2,Offset3,Offset4 = 5,0,0,0
-
-Groupbox:CreateSlider({
-	Name = "前后偏移",
-	Range = {-100, 100},
-	CurrentValue = Offset1,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = .1,
-	Callback = function(Value)
-		Offset1 = Value
-	end    
-})
-Groupbox:CreateSlider({
-	Name = "左右偏移",
-	Range = {-100, 100},
-	CurrentValue = Offset2,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = .1,
-	Callback = function(Value)
-		Offset2 = Value
-	end,
-})
-Groupbox:CreateSlider({
-	Name = "上下偏移",
-	Range = {-100, 100},
-	CurrentValue = Offset3,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = .1,
-	Callback = function(Value)
-		Offset3 = Value
-	end,
-})
-Groupbox:CreateSlider({
-	Name = "旋转偏移",
-	Range = {-180, 180},
-	CurrentValue = Offset4,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = .1,
-	Callback = function(Value)
-		Offset4 = Value
-	end,
-})
-
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "狙击",
-	Column = 1,
-})
-
-local teleportvaluestable;teleportvaluestable = {
-	telepoartuserid = nil,
-	getAvatar = function(userId)
-		local res = Request({
-			Url = "https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=" .. userId .. "&size=150x150&format=Png",
-			Method = "GET"
-		})
-		local data = HttpService:JSONDecode(res.Body)
-		return data.data and data.data[1] and data.data[1].imageUrl or nil
-	end,
-	checkBatch = function(batch, targetImage)
-		local payload = {}
-		for _, entry in ipairs(batch) do
-			table.insert(payload, {
-				requestId = "0:" .. entry[3] .. ":AvatarHeadshot:150x150:png:regular",
-				type = "AvatarHeadShot",
-				token = entry[3],
-				format = "png",
-				size = "150x150"
-			})
-		end
-
-		local res = Request({
-			Url = "https://thumbnails.roblox.com/v1/batch",
-			Method = "POST",
-			Headers = {["Content-Type"] = "application/json"},
-			Body = HttpService:JSONEncode(payload)
-		})
-		local decoded = HttpService:JSONDecode(res.Body)
-		for i, v in ipairs(decoded.data) do
-			if v.imageUrl == targetImage then
-				local entry = batch[i]
-				return entry[1], entry[2]
+	Groupbox:CreateToggle({
+		Name = "锁人",
+		CurrentValue = tptotarget,
+		Callback = function(Value)
+			tptotarget = Value
+			if not Value and FakeCharacter then
+				FakeCharacter:Destroy()
+				FakeCharacter = nil
 			end
-		end
-	end,
-	runBatches = function(tokens, image)
-		for i = 1, #tokens, 100 do
-			local batch = {}
-			for j = i, math.min(i + 99, #tokens) do
-				table.insert(batch, tokens[j])
-			end
-			local pid, sid = teleportvaluestable.checkBatch(batch, image)
-			if pid and sid then return pid, sid end
-			RunService.Heartbeat:Wait()
-		end
-	end,
-	fetchTokens = function(placeId, maxPages,userId)
-		local cursor, pages = "", 0
-		local image = teleportvaluestable.getAvatar(userId)
-		if not image then
+		end    
+	})
+
+	Groupbox:CreateToggle({
+		Name = "tsb锁人开启这个修复",
+		CurrentValue = fixtsb,
+		Callback = function(Value)
+			fixtsb = Value
+		end    
+	})
+
+	local oldsetmetatable
+	oldsetmetatable = hookmetamethod(game,"__newindex",newcclosure(function(self,key,value)
+		if 
+			(tptotarget and fixtsb) and 
+			(self and key and value) and
+			(self == workspace.CurrentCamera and key == "CameraSubject" and Player.Character and Player.Character:FindFirstChild("Humanoid") and value == Player.Character.Humanoid) 
+		then
 			return
 		end
-		while true do
-			local tokens = {}
-			local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/0?limit=100"
-			if cursor ~= "" then url = url .. "&cursor=" .. cursor end
 
-			local success, response = pcall(function()
-				local a = game:HttpGet(url)
-				return a
-			end)
-			if not success or not response then
-				break
-			end
+		return oldsetmetatable(self,key,value)
+	end))
 
-			local ok, data = pcall(function() return HttpService:JSONDecode(response) end)
+	local Offset1,Offset2,Offset3,Offset4 = 5,0,0,0
 
-			if not ok or not data then
-				break
-			end
-			if data.errors and data.errors[1] and data.errors[1].message and data.errors[1].message == "Too many requests" then
-				break
-			end
-			for _, server in ipairs(data.data) do
-				if server.playerTokens then
-					for _, token in ipairs(server.playerTokens) do
-						table.insert(tokens, {placeId, server.id, token})
-					end
-				end
-			end
+	Groupbox:CreateSlider({
+		Name = "前后偏移",
+		Range = {-100, 100},
+		CurrentValue = Offset1,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = .1,
+		Callback = function(Value)
+			Offset1 = Value
+		end    
+	})
+	Groupbox:CreateSlider({
+		Name = "左右偏移",
+		Range = {-100, 100},
+		CurrentValue = Offset2,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = .1,
+		Callback = function(Value)
+			Offset2 = Value
+		end,
+	})
+	Groupbox:CreateSlider({
+		Name = "上下偏移",
+		Range = {-100, 100},
+		CurrentValue = Offset3,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = .1,
+		Callback = function(Value)
+			Offset3 = Value
+		end,
+	})
+	Groupbox:CreateSlider({
+		Name = "旋转偏移",
+		Range = {-180, 180},
+		CurrentValue = Offset4,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = .1,
+		Callback = function(Value)
+			Offset4 = Value
+		end,
+	})
 
-			pages =  pages + 1
-			print(pages)
-			local pid, sid = teleportvaluestable.runBatches(tokens, image)
-			if pid and sid then
-				TeleportService:TeleportToPlaceInstance(pid, sid)
-				return
-			end
-			if not data.nextPageCursor or pages >= maxPages then break end
-			cursor = data.nextPageCursor
-			task.wait(.15)
-		end
-	end,
-	run = function(placeId, target)
-		local userId = tonumber(target)
-		if not userId then
-			local ok, uid = pcall(function()
-				return Players:GetUserIdFromNameAsync(target)
-			end)
-			if not ok then
-				return
-			end
-			userId = uid
-		end
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "狙击",
+		Column = 1,
+	})
 
-		teleportvaluestable.fetchTokens(placeId, 1000,userId)
-	end
-}
-
-Groupbox:CreateInput({
-	Name = "用户名或者用户id",
-	CurrentValue = "",
-	PlaceholderText = "输入数字/文字",
-	RemoveTextAfterFocusLost = false,
-	Callback = function(Text)
-		teleportvaluestable.telepoartuserid = Text
-	end,
-})
-
-
-Groupbox:CreateButton({
-	Name = "开始传送(必须和所选择玩家处同一游戏)",
-	Callback = function()
-		if teleportvaluestable.telepoartuserid ~= '' and teleportvaluestable.telepoartuserid then 
-			teleportvaluestable.run(game.PlaceId,teleportvaluestable.telepoartuserid)
-		end
-	end,
-})
-
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "工具",
-	Column = 1,
-})
-
-Groupbox:CreateButton({
-	Name = "IY",
-	Callback = function()
-		loadstring(GetUrl('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-	end,
-},"IYTool")
-Groupbox:CreateButton({
-	Name = "DEX",
-	Callback = function()
-		loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Dex-/refs/heads/main/Main"))()
-	end,
-},"DexTool")
-
-Groupbox:CreateButton({
-	Name = "Rspy",
-	Callback = function()
-		loadstring(GetUrl("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua"))()
-	end,
-},"RspyTool")
-
-Groupbox:CreateButton({
-	Name = "Rspy客户端事件记录版",
-	Callback = function()
-		loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/RemoteSpy-ClientLog.lua"))()
-	end,
-},"RspyClientLogTool")
-
-Groupbox:CreateButton({
-	Name = "保存场景/saveinstance(支持更多注入器)",
-	Callback = function()
-		local Params = {
-			RepoURL = "https://raw.githubusercontent.com/luau/SynSaveInstance/main/",
-			SSI = "saveinstance",
-		}
-		local synsaveinstance = loadstring(GetUrl(Params.RepoURL .. Params.SSI .. ".luau"), Params.SSI)()
-		local Options = {}
-		synsaveinstance(Options)
-	end,
-},"SaveInstanceTool")
-
-
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "杂项",
-	Column = 1,
-})
-
-Groupbox:CreateToggle({
-	Name = "防止挂机踢出",
-	CurrentValue = Values.AntiAfkKick,
-	Style = 2,
-	Callback = function(Value)
-		Values.AntiAfkKick = Value
-	end,
-})
-
-local MainTab = TabSection:CreateTab({
-	Name = "画质",
-	Columns = 1,
-})
-
-
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "体积光渲染",
-	Column = 1,
-})
-
-local Volumertric2 = GetApi("https://raw.githubusercontent.com/qian-cheng-awa/TDMSClol123456/refs/heads/main/Fog.luau")
-
-local VolumetricFog = {
-	Enabled = false,
-	Amount = 50,
-	Color = Color3.fromRGB(200,200,200),
-	Overscan = 1.15,
-	Spread = 0.5,
-	Transparency = 0.989,
-	BaseDistance = 4,
-}
-
-local cachedTransparency = NumberSequence.new(VolumetricFog.Transparency)
-local cachedColor = ColorSequence.new(VolumetricFog.Color)
-
-local function updateSequences()
-	cachedTransparency = NumberSequence.new(VolumetricFog.Transparency)
-	cachedColor = ColorSequence.new(VolumetricFog.Color)
-end
-
-local lastViewport = Vector2.zero
-local lastFOV = 0
-
-local FogPart
-
-local function updateFogPartSize()
-	local Camera = workspace.CurrentCamera
-	local viewport = Camera.ViewportSize
-	local fov = Camera.FieldOfView
-
-	if viewport == lastViewport and fov == lastFOV then
-		return
-	end
-
-	lastViewport = viewport
-	lastFOV = fov
-
-	local height =
-		2 * math.tan(math.rad(fov / 2)) * VolumetricFog.BaseDistance
-
-	local width =
-		height * (viewport.X / viewport.Y)
-
-	FogPart.Size = Vector3.new(width, height, 0.1)
-end
-
-local function getBeamDimensions(distance)
-	local Camera = workspace.CurrentCamera
-	local viewport = Camera.ViewportSize
-	local fov = Camera.FieldOfView
-
-	local baseHeight =
-		2 * math.tan(math.rad(fov / 2)) * VolumetricFog.BaseDistance
-
-	local baseWidth =
-		baseHeight * (viewport.X / viewport.Y)
-
-	local scale =
-		(distance / VolumetricFog.BaseDistance) * VolumetricFog.Overscan
-
-	return (baseWidth * 2) * scale, baseHeight * scale
-end
-
-local beams = {}
-
-local function rebuildFog()
-	updateFogPartSize()
-
-	for i = 1, VolumetricFog.Amount do
-		local beam = beams[i]
-
-		if not beam then
-			local top = Instance.new("Attachment")
-			local bottom = Instance.new("Attachment")
-			local newBeam = Instance.new("Beam")
-
-			top.Parent = FogPart
-			bottom.Parent = FogPart
-			newBeam.Parent = FogPart
-
-			newBeam.Attachment0 = top
-			newBeam.Attachment1 = bottom
-
-			newBeam.FaceCamera = true
-			newBeam.LightInfluence = 1
-			newBeam.LightEmission = 1
-			newBeam.Texture = "rbxassetid://15307205043"
-			newBeam.TextureLength = 1
-			newBeam.TextureMode = Enum.TextureMode.Stretch
-
-			beams[i] = newBeam
-			beam = newBeam
-		end
-
-		local zOffset =
-			-VolumetricFog.BaseDistance - ((i - 1) * VolumetricFog.Spread)
-
-		local distance = math.abs(zOffset)
-
-		local width, height =
-			getBeamDimensions(distance)
-
-		beam.Width0 = width
-		beam.Width1 = width
-
-		beam.Attachment0.Position =
-			Vector3.new(
-				0,
-				height,
-				zOffset
-			)
-
-		beam.Attachment1.Position =
-			Vector3.new(
-				0,
-				-height,
-				zOffset
-			)
-
-		beam.Transparency = cachedTransparency
-		beam.Color = cachedColor
-	end
-
-	for i = VolumetricFog.Amount + 1, #beams do
-		local beam = beams[i]
-
-		beam.Attachment0:Destroy()
-		beam.Attachment1:Destroy()
-		beam:Destroy()
-
-		beams[i] = nil
-	end
-end
-local RenderMethods = {
-	"光束(性能好，仅太阳光有效)",
-	"MeshPart(所有光都有效，cpu破坏者)"
-}
-
-local CurrentRenderMethod = 1
-
-Groupbox:CreateDropdown({
-	Options = RenderMethods,
-	Required = true,
-	MultipleOptions = false,
-	Placeholder = "None Selected",
-	CurrentOption = {RenderMethods[CurrentRenderMethod]},
-	Name = "实现方式",
-	Callback = function(Options)
-		local val = Options[1]
-		
-		CurrentRenderMethod = table.find(RenderMethods, val)
-	end,
-})
-Groupbox:CreateToggle({
-	Name = "启用(更改设置请重新开启)",
-	CurrentValue = VolumetricFog.Enabled,
-	Callback = function(Value)
-		VolumetricFog.Enabled = Value
-		if Value then
-			if CurrentRenderMethod == 1 then
-				FogPart = Instance.new("Part")
-				FogPart.Name = "FogPart"
-				FogPart.Anchored = true
-				FogPart.CanCollide = false
-				FogPart.Transparency = 1
-				FogPart.Parent = workspace.CurrentCamera
-
-				updateSequences()
-
-				rebuildFog()
-			else
-				Volumertric2.Enable(true)
-
-				Volumertric2.SetSettings({
-					planeSpacing = VolumetricFog.Spread,
-					planeCount = VolumetricFog.Amount,
-					transparency = VolumetricFog.Transparency,
+	local teleportvaluestable;teleportvaluestable = {
+		telepoartuserid = nil,
+		getAvatar = function(userId)
+			local res = Request({
+				Url = "https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=" .. userId .. "&size=150x150&format=Png",
+				Method = "GET"
+			})
+			local data = HttpService:JSONDecode(res.Body)
+			return data.data and data.data[1] and data.data[1].imageUrl or nil
+		end,
+		checkBatch = function(batch, targetImage)
+			local payload = {}
+			for _, entry in ipairs(batch) do
+				table.insert(payload, {
+					requestId = "0:" .. entry[3] .. ":AvatarHeadshot:150x150:png:regular",
+					type = "AvatarHeadShot",
+					token = entry[3],
+					format = "png",
+					size = "150x150"
 				})
 			end
-		else
-			if CurrentRenderMethod == 1 then
-				if FogPart then
-					FogPart:Destroy()
+
+			local res = Request({
+				Url = "https://thumbnails.roblox.com/v1/batch",
+				Method = "POST",
+				Headers = {["Content-Type"] = "application/json"},
+				Body = HttpService:JSONEncode(payload)
+			})
+			local decoded = HttpService:JSONDecode(res.Body)
+			for i, v in ipairs(decoded.data) do
+				if v.imageUrl == targetImage then
+					local entry = batch[i]
+					return entry[1], entry[2]
+				end
+			end
+		end,
+		runBatches = function(tokens, image)
+			for i = 1, #tokens, 100 do
+				local batch = {}
+				for j = i, math.min(i + 99, #tokens) do
+					table.insert(batch, tokens[j])
+				end
+				local pid, sid = teleportvaluestable.checkBatch(batch, image)
+				if pid and sid then return pid, sid end
+				RunService.Heartbeat:Wait()
+			end
+		end,
+		fetchTokens = function(placeId, maxPages,userId)
+			local cursor, pages = "", 0
+			local image = teleportvaluestable.getAvatar(userId)
+			if not image then
+				return
+			end
+			while true do
+				local tokens = {}
+				local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/0?limit=100"
+				if cursor ~= "" then url = url .. "&cursor=" .. cursor end
+
+				local success, response = pcall(function()
+					local a = game:HttpGet(url)
+					return a
+				end)
+				if not success or not response then
+					break
 				end
 
-				for i,v in beams do
-					v:Destroy()
-					beams[i] = nil
+				local ok, data = pcall(function() return HttpService:JSONDecode(response) end)
+
+				if not ok or not data then
+					break
 				end
-			else
-				Volumertric2.Enable(false)
+				if data.errors and data.errors[1] and data.errors[1].message and data.errors[1].message == "Too many requests" then
+					break
+				end
+				for _, server in ipairs(data.data) do
+					if server.playerTokens then
+						for _, token in ipairs(server.playerTokens) do
+							table.insert(tokens, {placeId, server.id, token})
+						end
+					end
+				end
+
+				pages =  pages + 1
+				print(pages)
+				local pid, sid = teleportvaluestable.runBatches(tokens, image)
+				if pid and sid then
+					TeleportService:TeleportToPlaceInstance(pid, sid)
+					return
+				end
+				if not data.nextPageCursor or pages >= maxPages then break end
+				cursor = data.nextPageCursor
+				task.wait(.15)
+			end
+		end,
+		run = function(placeId, target)
+			local userId = tonumber(target)
+			if not userId then
+				local ok, uid = pcall(function()
+					return Players:GetUserIdFromNameAsync(target)
+				end)
+				if not ok then
+					return
+				end
+				userId = uid
+			end
+
+			teleportvaluestable.fetchTokens(placeId, 1000,userId)
+		end
+	}
+
+	Groupbox:CreateInput({
+		Name = "用户名或者用户id",
+		CurrentValue = "",
+		PlaceholderText = "输入数字/文字",
+		RemoveTextAfterFocusLost = false,
+		Callback = function(Text)
+			teleportvaluestable.telepoartuserid = Text
+		end,
+	})
+
+
+	Groupbox:CreateButton({
+		Name = "开始传送(必须和所选择玩家处同一游戏)",
+		Callback = function()
+			if teleportvaluestable.telepoartuserid ~= '' and teleportvaluestable.telepoartuserid then 
+				teleportvaluestable.run(game.PlaceId,teleportvaluestable.telepoartuserid)
+			end
+		end,
+	})
+
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "工具",
+		Column = 1,
+	})
+
+	Groupbox:CreateButton({
+		Name = "IY",
+		Callback = function()
+			loadstring(GetUrl('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+		end,
+	},"IYTool")
+	Groupbox:CreateButton({
+		Name = "DEX",
+		Callback = function()
+			loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Dex-/refs/heads/main/Main"))()
+		end,
+	},"DexTool")
+
+	Groupbox:CreateButton({
+		Name = "Rspy",
+		Callback = function()
+			loadstring(GetUrl("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua"))()
+		end,
+	},"RspyTool")
+
+	Groupbox:CreateButton({
+		Name = "Rspy客户端事件记录版",
+		Callback = function()
+			loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/RemoteSpy-ClientLog.lua"))()
+		end,
+	},"RspyClientLogTool")
+
+	Groupbox:CreateButton({
+		Name = "保存场景/saveinstance(支持更多注入器)",
+		Callback = function()
+			local Params = {
+				RepoURL = "https://raw.githubusercontent.com/luau/SynSaveInstance/main/",
+				SSI = "saveinstance",
+			}
+			local synsaveinstance = loadstring(GetUrl(Params.RepoURL .. Params.SSI .. ".luau"), Params.SSI)()
+			local Options = {}
+			synsaveinstance(Options)
+		end,
+	},"SaveInstanceTool")
+
+
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "杂项",
+		Column = 1,
+	})
+
+	Groupbox:CreateToggle({
+		Name = "防止挂机踢出",
+		CurrentValue = Values.AntiAfkKick,
+		Style = 2,
+		Callback = function(Value)
+			Values.AntiAfkKick = Value
+		end,
+	})
+	
+	table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
+		if tptotarget and fpl and fpl.Character then
+			local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
+			if HRP then
+				local TargetHRP = fpl.Character:FindFirstChild("HumanoidRootPart")
+				if TargetHRP then
+					pcall(function()
+						sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
+
+						local finalcframe
+						local TargetCFrame = TargetHRP.CFrame
+
+						if not fixtsb then
+							finalcframe = TargetCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
+						else
+							local RealCFrame = CFrame.new(0,0,0)
+							finalcframe = RealCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
+						end
+
+						if fixtsb then
+							if FakeCharacter then
+								FakeCharacter.HumanoidRootPart.CFrame = TargetHRP.CFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
+								workspace.CurrentCamera.CameraSubject = FakeCharacter.Humanoid
+							else
+								local oldArchivable = Player.Character.Archivable
+								Player.Character.Archivable = true
+								FakeCharacter = Player.Character:Clone()
+								FakeCharacter.Parent = workspace
+								Player.Character.Archivable = oldArchivable
+
+								FakeCharacter.HumanoidRootPart.Anchored = true
+								FakeCharacter.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+								FakeCharacter.HumanoidRootPart.CFrame = finalcframe
+							end
+						end
+
+						HRP.CFrame = finalcframe
+					end)
+				end
 			end
 		end
+	end))
+end
+
+do
+	local MainTab = TabSection:CreateTab({
+		Name = "画质",
+		Columns = 1,
+	})
+
+
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "体积光渲染",
+		Column = 1,
+	})
+
+	local Volumertric2 = GetApi("https://raw.githubusercontent.com/qian-cheng-awa/TDMSClol123456/refs/heads/main/Fog.luau")
+
+	local VolumetricFog = {
+		Enabled = false,
+		Amount = 50,
+		Color = Color3.fromRGB(200,200,200),
+		Overscan = 1.15,
+		Spread = 0.5,
+		Transparency = 0.989,
+		BaseDistance = 4,
+	}
+
+	local cachedTransparency = NumberSequence.new(VolumetricFog.Transparency)
+	local cachedColor = ColorSequence.new(VolumetricFog.Color)
+
+	local function updateSequences()
+		cachedTransparency = NumberSequence.new(VolumetricFog.Transparency)
+		cachedColor = ColorSequence.new(VolumetricFog.Color)
 	end
-})
 
-Groupbox:CreateSlider({
-	Name = "数量",
-	Range = {0, 100},
-	CurrentValue = VolumetricFog.Amount,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	Suffix = "",
-	Callback = function(Value)
-		VolumetricFog.Amount = Value
-	end    
-})
+	local lastViewport = Vector2.zero
+	local lastFOV = 0
 
-Groupbox:CreateColorPicker({
-	Name = "颜色",
-	CurrentValue = VolumetricFog.Color,
-	Callback = function(Value)
-		VolumetricFog.Color = Value
-	end,
-})
+	local FogPart
 
-Groupbox:CreateSlider({
-	Name = "过扫描系数",
-	Range = {0, 10},
-	CurrentValue = VolumetricFog.Overscan,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 0.01,
-	Suffix = "",
-	Callback = function(Value)
-		VolumetricFog.Overscan = Value
-	end    
-})
+	local function updateFogPartSize()
+		local Camera = workspace.CurrentCamera
+		local viewport = Camera.ViewportSize
+		local fov = Camera.FieldOfView
 
-Groupbox:CreateSlider({
-	Name = "渲染间隔",
-	Range = {0, 5},
-	CurrentValue = VolumetricFog.Spread,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 0.01,
-	Suffix = "",
-	Callback = function(Value)
-		VolumetricFog.Spread = Value
-	end    
-})
+		if viewport == lastViewport and fov == lastFOV then
+			return
+		end
 
-Groupbox:CreateSlider({
-	Name = "透明度",
-	Range = {0, 1},
-	CurrentValue = VolumetricFog.Transparency,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 0.001,
-	Suffix = "",
-	Callback = function(Value)
-		VolumetricFog.Transparency = Value
+		lastViewport = viewport
+		lastFOV = fov
+
+		local height =
+			2 * math.tan(math.rad(fov / 2)) * VolumetricFog.BaseDistance
+
+		local width =
+			height * (viewport.X / viewport.Y)
+
+		FogPart.Size = Vector3.new(width, height, 0.1)
 	end
-})
 
-Groupbox:CreateSlider({
-	Name = "基础距离",
-	Range = {0, 10},
-	CurrentValue = VolumetricFog.BaseDistance,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 0.1,
-	Suffix = "",
-	Callback = function(Value)
-		VolumetricFog.BaseDistance = Value
+	local function getBeamDimensions(distance)
+		local Camera = workspace.CurrentCamera
+		local viewport = Camera.ViewportSize
+		local fov = Camera.FieldOfView
+
+		local baseHeight =
+			2 * math.tan(math.rad(fov / 2)) * VolumetricFog.BaseDistance
+
+		local baseWidth =
+			baseHeight * (viewport.X / viewport.Y)
+
+		local scale =
+			(distance / VolumetricFog.BaseDistance) * VolumetricFog.Overscan
+
+		return (baseWidth * 2) * scale, baseHeight * scale
 	end
-})
 
+	local beams = {}
 
+	local function rebuildFog()
+		updateFogPartSize()
+
+		for i = 1, VolumetricFog.Amount do
+			local beam = beams[i]
+
+			if not beam then
+				local top = Instance.new("Attachment")
+				local bottom = Instance.new("Attachment")
+				local newBeam = Instance.new("Beam")
+
+				top.Parent = FogPart
+				bottom.Parent = FogPart
+				newBeam.Parent = FogPart
+
+				newBeam.Attachment0 = top
+				newBeam.Attachment1 = bottom
+
+				newBeam.FaceCamera = true
+				newBeam.LightInfluence = 1
+				newBeam.LightEmission = 1
+				newBeam.Texture = "rbxassetid://15307205043"
+				newBeam.TextureLength = 1
+				newBeam.TextureMode = Enum.TextureMode.Stretch
+
+				beams[i] = newBeam
+				beam = newBeam
+			end
+
+			local zOffset =
+				-VolumetricFog.BaseDistance - ((i - 1) * VolumetricFog.Spread)
+
+			local distance = math.abs(zOffset)
+
+			local width, height =
+				getBeamDimensions(distance)
+
+			beam.Width0 = width
+			beam.Width1 = width
+
+			beam.Attachment0.Position =
+				Vector3.new(
+					0,
+					height,
+					zOffset
+				)
+
+			beam.Attachment1.Position =
+				Vector3.new(
+					0,
+					-height,
+					zOffset
+				)
+
+			beam.Transparency = cachedTransparency
+			beam.Color = cachedColor
+		end
+
+		for i = VolumetricFog.Amount + 1, #beams do
+			local beam = beams[i]
+
+			beam.Attachment0:Destroy()
+			beam.Attachment1:Destroy()
+			beam:Destroy()
+
+			beams[i] = nil
+		end
+	end
+	local RenderMethods = {
+		"光束(性能好，仅太阳光有效)",
+		"MeshPart(所有光都有效，cpu破坏者)"
+	}
+
+	local CurrentRenderMethod = 1
+
+	Groupbox:CreateDropdown({
+		Options = RenderMethods,
+		Required = true,
+		MultipleOptions = false,
+		Placeholder = "None Selected",
+		CurrentOption = {RenderMethods[CurrentRenderMethod]},
+		Name = "实现方式",
+		Callback = function(Options)
+			local val = Options[1]
+
+			CurrentRenderMethod = table.find(RenderMethods, val)
+		end,
+	})
+	Groupbox:CreateToggle({
+		Name = "启用(更改设置请重新开启)",
+		CurrentValue = VolumetricFog.Enabled,
+		Callback = function(Value)
+			VolumetricFog.Enabled = Value
+			if Value then
+				if CurrentRenderMethod == 1 then
+					FogPart = Instance.new("Part")
+					FogPart.Name = "FogPart"
+					FogPart.Anchored = true
+					FogPart.CanCollide = false
+					FogPart.Transparency = 1
+					FogPart.Parent = workspace.CurrentCamera
+
+					updateSequences()
+
+					rebuildFog()
+				else
+					Volumertric2.Enable(true)
+
+					Volumertric2.SetSettings({
+						planeSpacing = VolumetricFog.Spread,
+						planeCount = VolumetricFog.Amount,
+						transparency = VolumetricFog.Transparency,
+					})
+				end
+			else
+				if CurrentRenderMethod == 1 then
+					if FogPart then
+						FogPart:Destroy()
+					end
+
+					for i,v in beams do
+						v:Destroy()
+						beams[i] = nil
+					end
+				else
+					Volumertric2.Enable(false)
+				end
+			end
+		end
+	})
+
+	Groupbox:CreateSlider({
+		Name = "数量",
+		Range = {0, 100},
+		CurrentValue = VolumetricFog.Amount,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Suffix = "",
+		Callback = function(Value)
+			VolumetricFog.Amount = Value
+		end    
+	})
+
+	Groupbox:CreateColorPicker({
+		Name = "颜色",
+		CurrentValue = VolumetricFog.Color,
+		Callback = function(Value)
+			VolumetricFog.Color = Value
+		end,
+	})
+
+	Groupbox:CreateSlider({
+		Name = "过扫描系数",
+		Range = {0, 10},
+		CurrentValue = VolumetricFog.Overscan,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 0.01,
+		Suffix = "",
+		Callback = function(Value)
+			VolumetricFog.Overscan = Value
+		end    
+	})
+
+	Groupbox:CreateSlider({
+		Name = "渲染间隔",
+		Range = {0, 5},
+		CurrentValue = VolumetricFog.Spread,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 0.01,
+		Suffix = "",
+		Callback = function(Value)
+			VolumetricFog.Spread = Value
+		end    
+	})
+
+	Groupbox:CreateSlider({
+		Name = "透明度",
+		Range = {0, 1},
+		CurrentValue = VolumetricFog.Transparency,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 0.001,
+		Suffix = "",
+		Callback = function(Value)
+			VolumetricFog.Transparency = Value
+		end
+	})
+
+	Groupbox:CreateSlider({
+		Name = "基础距离",
+		Range = {0, 10},
+		CurrentValue = VolumetricFog.BaseDistance,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 0.1,
+		Suffix = "",
+		Callback = function(Value)
+			VolumetricFog.BaseDistance = Value
+		end
+	})
+	
+	table.insert(Connects,RunService.RenderStepped:Connect(function()
+		if FogPart then
+			FogPart.CFrame = workspace.CurrentCamera.CFrame
+		end
+	end))
+end
 
 local MainTab = TabSection:CreateTab({
 	Name = "传送",
 	Columns = 1,
 })
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "",
-	Column = 1,
-})
 
-local TPFolderPath = "TDMTP"
+do
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "",
+		Column = 1,
+	})
 
-if not isfolder("TDMTP") then
-	makefolder("TDMTP")
-end
+	local TPFolderPath = "TDMTP"
 
-local function GetTpFiles()
-	local t = {}
-	for i,v in listfiles("TDMTP") do
-		table.insert(t,v:sub(#TPFolderPath + 2))
+	if not isfolder("TDMTP") then
+		makefolder("TDMTP")
 	end
-	return t
+
+	local function GetTpFiles()
+		local t = {}
+		for i,v in listfiles("TDMTP") do
+			table.insert(t,v:sub(#TPFolderPath + 2))
+		end
+		return t
+	end
+
+	local CurrentTpPosition
+	local tppositions = Groupbox:CreateDropdown({
+		Options = GetTpFiles(),
+		Required = true,
+		MultipleOptions = false,
+		Placeholder = "None Selected",
+		Name = "选择位置",
+		Callback = function(Options)
+			local File = readfile(TPFolderPath.."/"..Options[1])
+
+			if File then
+				local Position = string.split(File,",")
+
+				if Position then
+					CurrentTpPosition = Vector3.new(tonumber(Position[1]),tonumber(Position[2]),tonumber(Position[3]))
+				end
+			end
+		end,
+	})
+
+	Groupbox:CreateButton({
+		Name = "传送",
+		Callback = function()
+			if CurrentTpPosition then
+				local char = Player.Character
+				if char then
+					char:PivotTo(CFrame.new(CurrentTpPosition))
+				end
+			end
+		end,
+	})
+
+	local TPPointName = ""
+	Groupbox:CreateInput({
+		Name = "位置名字",
+		CurrentValue = TPPointName,
+		PlaceholderText = "",
+		Callback = function(Text)
+			TPPointName = Text
+		end,
+	})
+	Groupbox:CreateButton({
+		Name = "保存位置",
+		Callback = function()
+			if TPPointName ~= "" and Player.Character then
+				writefile(`{TPFolderPath}/{TPPointName}`,tostring(Player.Character:GetPivot().Position))
+
+				tppositions:Set({Options = GetTpFiles()})
+			end
+		end,
+	})
 end
-
-local CurrentTpPosition
-local tppositions = Groupbox:CreateDropdown({
-	Options = GetTpFiles(),
-	Required = true,
-	MultipleOptions = false,
-	Placeholder = "None Selected",
-	Name = "选择位置",
-	Callback = function(Options)
-		local File = readfile(TPFolderPath.."/"..Options[1])
-
-		if File then
-			local Position = string.split(File,",")
-
-			if Position then
-				CurrentTpPosition = Vector3.new(tonumber(Position[1]),tonumber(Position[2]),tonumber(Position[3]))
-			end
-		end
-	end,
-})
-
-Groupbox:CreateButton({
-	Name = "传送",
-	Callback = function()
-		if CurrentTpPosition then
-			local char = Player.Character
-			if char then
-				char:PivotTo(CFrame.new(CurrentTpPosition))
-			end
-		end
-	end,
-})
-
-local TPPointName = ""
-Groupbox:CreateInput({
-	Name = "位置名字",
-	CurrentValue = TPPointName,
-	PlaceholderText = "",
-	Callback = function(Text)
-		TPPointName = Text
-	end,
-})
-Groupbox:CreateButton({
-	Name = "保存位置",
-	Callback = function()
-		if TPPointName ~= "" and Player.Character then
-			writefile(`{TPFolderPath}/{TPPointName}`,tostring(Player.Character:GetPivot().Position))
-
-			tppositions:Set({Options = GetTpFiles()})
-		end
-	end,
-})
 
 local MainTab = TabSection:CreateTab({
 	Name = "功能",
 	Columns = 1,
 })
 
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "",
-	Column = 1,
-})
-local antikick = false
-Groupbox:CreateToggle({
-	Name = "防踢",
-	CurrentValue = antikick,
-	Callback = function(Value)
-		antikick = Value
-	end    
-})
+do
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "",
+		Column = 1,
+	})
+	local antikick = false
+	Groupbox:CreateToggle({
+		Name = "防踢",
+		CurrentValue = antikick,
+		Callback = function(Value)
+			antikick = Value
+		end    
+	})
 
-local oldkick;oldkick = hookfunction(Player.Kick,function(self,message)
-	if self == Player then
-		if antikick then
-			StarterGui:SetCore("SendNotification",{
-				Title = "TDM",
-				Text = "已拦截本地踢出："..tostring(message or "没有踢出信息"),
-			})
-			return
-		end
-	end
-	return oldkick(self,message)
-end)
-
-local oldkicknamecall
-oldkicknamecall = hookmetamethod(game,"__namecall",function(self,...)
-	local namecallmethod = string.lower(getnamecallmethod())
-	if namecallmethod == "kick" and self == Player then
-		if antikick then
-			StarterGui:SetCore("SendNotification",{
-				Title = "TDM",
-				Text = "已拦截本地踢出："..tostring((...) or "没有踢出信息"),
-			})
-			return
-		end
-	end
-	return oldkicknamecall(self,...)
-end)
-
-local CFrameSpeed = 2
-
-Groupbox:CreateSlider({
-	Name = "移动速度",
-	Range = {0, 100},
-	CurrentValue = 2,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	Suffix = "m/s",
-	Callback = function(Value)
-		CFrameSpeed = Value
-	end    
-})
-
-local CFrameSpeedEnabled = false
-
-Groupbox:CreateToggle({
-	Name = "启用",
-	CurrentValue = false,
-	Callback = function(Value)
-		CFrameSpeedEnabled = Value
-	end    
-})
-
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "穿墙",
-	Column = 1,
-})
-
-Groupbox:CreateToggle({
-	Name = "启用",
-	CurrentValue = false,
-	Callback = function(Value)
-		if Value then
-			NoClip()
-		else
-			UnNoClip()
-		end
-	end    
-})
-
-Groupbox:CreateToggle({
-	Name = "无碰撞",
-	CurrentValue = false,
-	Callback = function(Value)
-		if Value then
-			DisibleCanTouched()
-		else
-			EnabledCanTouched()
-		end
-	end    
-})
-
-
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "飞行",
-	Column = 1,
-})
-
-
-local cfly = false
-local cflyspeed = 50
-Groupbox:CreateToggle({
-	Name = "灵魂飞行",
-	CurrentValue = cfly,
-	Callback = function(Value)
-		cfly = Value
-		if not Value and Player.Character and Player.Character:FindFirstChild("Head") then
-			Player.Character.Head.Anchored = false
-		end
-	end    
-})
-Groupbox:CreateSlider({
-	Name = "灵魂飞行速度",
-	Range = {0, 1000},
-	CurrentValue = cflyspeed,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	Callback = function(Value)
-		cflyspeed = Value
-	end    
-})
-
-local vfly = false
-
-Groupbox:CreateToggle({
-	Name = "IY飞行",
-	CurrentValue = false,
-	Callback = function(Value)
-		if Value then
-			mobilefly(Player,vfly)
-		else
-			unmobilefly(Player)
-		end
-	end    
-})
-Groupbox:CreateToggle({
-	Name = "IY飞行(pc端)",
-	CurrentValue = false,
-	Callback = function(Value)
-		if Value then
-			sFLY(vfly)
-		else
-			NOFLY()
-		end
-	end    
-})
-Groupbox:CreateToggle({
-	Name = "载具模式（先开这个再开飞行）",
-	CurrentValue = vfly,
-	Callback = function(Value)
-		vfly = Value
-	end    
-})
-Groupbox:CreateSlider({
-	Name = "飞行速度",
-	Range = {0, 100},
-	CurrentValue = iyflyspeed,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	Callback = function(Value)
-		iyflyspeed = Value
-	end    
-})
-local fly = false
-local down = false
-local up = false
-local jp = 50
-local ds = 50
-local flyspeed = 2
-Groupbox:CreateToggle({
-	Name = "飞行2",
-	CurrentValue = false,
-	Callback = function(Value)
-		local character = Player.Character or Player.CharacterAdded:Wait()
-		local Sc = Player.PlayerGui:FindFirstChild("FLUI") or Instance.new("ScreenGui",Player.PlayerGui)
-		Sc.Name = "FLUI"
-		local button
-		if not Sc:FindFirstChild("TextButtonD") then
-			button = Instance.new("TextButton",Sc)
-			button.Name = "TextButtonD"
-			button.Size = UDim2.new(0.1, 0, 0.08, 0)
-			button.Position = UDim2.new(0.822, 0,0.76, 0)
-			button.TextScaled = true
-			button.Text = "下降"
-			button.BackgroundColor3 = Color3.new(0.470588, 0.470588, 0.470588)
-		else
-			button = Sc:FindFirstChild("TextButtonD")
-		end
-		local buttonu
-		if not Sc:FindFirstChild("TextButtonU") then
-			buttonu = Instance.new("TextButton",Sc)
-			buttonu.Name = "TextButtonU"
-			buttonu.Size = UDim2.new(0.1, 0, 0.08, 0)
-			buttonu.Position = UDim2.new(0.822, 0,0.61, 0)
-			buttonu.TextScaled = true
-			buttonu.Text = "上升"
-			buttonu.BackgroundColor3 = Color3.new(0.470588, 0.470588, 0.470588)
-		else
-			buttonu = Sc:FindFirstChild("TextButtonU")
-		end
-
-		if Value == true then
-			jp = character.Humanoid.JumpPower
-			character.Humanoid.JumpPower = 0
-			local bodyg = Instance.new("BodyVelocity",character.HumanoidRootPart)
-			bodyg.MaxForce = Vector3.new(1000000,1000000,1000000)
-			bodyg.P = 1250
-			bodyg.Name = "FLG"
-			table.insert(Connects,button.MouseButton1Down:Connect(function()
-				down = true
-			end))
-			table.insert(Connects,button.MouseLeave:Connect(function()
-				down = false
-			end))
-			table.insert(Connects,buttonu.MouseButton1Down:Connect(function()
-				up = true
-			end))
-			table.insert(Connects,buttonu.MouseLeave:Connect(function()
-				up = false
-			end))
-		else
-			character.Humanoid.JumpPower = jp
-			down = false
-			up = false
-			if character.HumanoidRootPart:FindFirstChild("FLG") then
-				character.HumanoidRootPart.FLG:Destroy()
+	local oldkick;oldkick = hookfunction(Player.Kick,function(self,message)
+		if self == Player then
+			if antikick then
+				StarterGui:SetCore("SendNotification",{
+					Title = "TDM",
+					Text = "已拦截本地踢出："..tostring(message or "没有踢出信息"),
+				})
+				return
 			end
-			Sc:Destroy()
 		end
-		fly = Value
-	end    
-})
+		return oldkick(self,message)
+	end)
 
-Groupbox:CreateSlider({
-	Name = "飞行速度",
-	Range = {0, 100},
-	CurrentValue = 2,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	Callback = function(Value)
-		flyspeed = Value
-	end    
-})
+	local oldkicknamecall
+	oldkicknamecall = hookmetamethod(game,"__namecall",function(self,...)
+		local namecallmethod = string.lower(getnamecallmethod())
+		if namecallmethod == "kick" and self == Player then
+			if antikick then
+				StarterGui:SetCore("SendNotification",{
+					Title = "TDM",
+					Text = "已拦截本地踢出："..tostring((...) or "没有踢出信息"),
+				})
+				return
+			end
+		end
+		return oldkicknamecall(self,...)
+	end)
 
-Groupbox:CreateSlider({
-	Name = "上升/下降速度",
-	Range = {0, 100},
-	CurrentValue = 50,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	Callback = function(Value)
-		ds = Value
-	end    
-})
+	local CFrameSpeed = 2
+
+	Groupbox:CreateSlider({
+		Name = "移动速度",
+		Range = {0, 100},
+		CurrentValue = 2,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Suffix = "m/s",
+		Callback = function(Value)
+			CFrameSpeed = Value
+		end    
+	})
+
+	local CFrameSpeedEnabled = false
+
+	Groupbox:CreateToggle({
+		Name = "启用",
+		CurrentValue = false,
+		Callback = function(Value)
+			CFrameSpeedEnabled = Value
+		end    
+	})
+
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "穿墙",
+		Column = 1,
+	})
+
+	Groupbox:CreateToggle({
+		Name = "启用",
+		CurrentValue = false,
+		Callback = function(Value)
+			if Value then
+				NoClip()
+			else
+				UnNoClip()
+			end
+		end    
+	})
+
+	Groupbox:CreateToggle({
+		Name = "无碰撞",
+		CurrentValue = false,
+		Callback = function(Value)
+			if Value then
+				DisibleCanTouched()
+			else
+				EnabledCanTouched()
+			end
+		end    
+	})
+
+
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "飞行",
+		Column = 1,
+	})
+
+
+	local cfly = false
+	local cflyspeed = 50
+	Groupbox:CreateToggle({
+		Name = "灵魂飞行",
+		CurrentValue = cfly,
+		Callback = function(Value)
+			cfly = Value
+			if not Value and Player.Character and Player.Character:FindFirstChild("Head") then
+				Player.Character.Head.Anchored = false
+			end
+		end    
+	})
+	Groupbox:CreateSlider({
+		Name = "灵魂飞行速度",
+		Range = {0, 1000},
+		CurrentValue = cflyspeed,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Callback = function(Value)
+			cflyspeed = Value
+		end    
+	})
+
+	local vfly = false
+
+	Groupbox:CreateToggle({
+		Name = "IY飞行",
+		CurrentValue = false,
+		Callback = function(Value)
+			if Value then
+				mobilefly(Player,vfly)
+			else
+				unmobilefly(Player)
+			end
+		end    
+	})
+	Groupbox:CreateToggle({
+		Name = "IY飞行(pc端)",
+		CurrentValue = false,
+		Callback = function(Value)
+			if Value then
+				sFLY(vfly)
+			else
+				NOFLY()
+			end
+		end    
+	})
+	Groupbox:CreateToggle({
+		Name = "载具模式（先开这个再开飞行）",
+		CurrentValue = vfly,
+		Callback = function(Value)
+			vfly = Value
+		end    
+	})
+	Groupbox:CreateSlider({
+		Name = "飞行速度",
+		Range = {0, 100},
+		CurrentValue = iyflyspeed,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Callback = function(Value)
+			iyflyspeed = Value
+		end    
+	})
+	local fly = false
+	local down = false
+	local up = false
+	local jp = 50
+	local ds = 50
+	local flyspeed = 2
+	Groupbox:CreateToggle({
+		Name = "飞行2",
+		CurrentValue = false,
+		Callback = function(Value)
+			local character = Player.Character or Player.CharacterAdded:Wait()
+			local Sc = Player.PlayerGui:FindFirstChild("FLUI") or Instance.new("ScreenGui",Player.PlayerGui)
+			Sc.Name = "FLUI"
+			local button
+			if not Sc:FindFirstChild("TextButtonD") then
+				button = Instance.new("TextButton",Sc)
+				button.Name = "TextButtonD"
+				button.Size = UDim2.new(0.1, 0, 0.08, 0)
+				button.Position = UDim2.new(0.822, 0,0.76, 0)
+				button.TextScaled = true
+				button.Text = "下降"
+				button.BackgroundColor3 = Color3.new(0.470588, 0.470588, 0.470588)
+			else
+				button = Sc:FindFirstChild("TextButtonD")
+			end
+			local buttonu
+			if not Sc:FindFirstChild("TextButtonU") then
+				buttonu = Instance.new("TextButton",Sc)
+				buttonu.Name = "TextButtonU"
+				buttonu.Size = UDim2.new(0.1, 0, 0.08, 0)
+				buttonu.Position = UDim2.new(0.822, 0,0.61, 0)
+				buttonu.TextScaled = true
+				buttonu.Text = "上升"
+				buttonu.BackgroundColor3 = Color3.new(0.470588, 0.470588, 0.470588)
+			else
+				buttonu = Sc:FindFirstChild("TextButtonU")
+			end
+
+			if Value == true then
+				jp = character.Humanoid.JumpPower
+				character.Humanoid.JumpPower = 0
+				local bodyg = Instance.new("BodyVelocity",character.HumanoidRootPart)
+				bodyg.MaxForce = Vector3.new(1000000,1000000,1000000)
+				bodyg.P = 1250
+				bodyg.Name = "FLG"
+				table.insert(Connects,button.MouseButton1Down:Connect(function()
+					down = true
+				end))
+				table.insert(Connects,button.MouseLeave:Connect(function()
+					down = false
+				end))
+				table.insert(Connects,buttonu.MouseButton1Down:Connect(function()
+					up = true
+				end))
+				table.insert(Connects,buttonu.MouseLeave:Connect(function()
+					up = false
+				end))
+			else
+				character.Humanoid.JumpPower = jp
+				down = false
+				up = false
+				if character.HumanoidRootPart:FindFirstChild("FLG") then
+					character.HumanoidRootPart.FLG:Destroy()
+				end
+				Sc:Destroy()
+			end
+			fly = Value
+		end    
+	})
+
+	Groupbox:CreateSlider({
+		Name = "飞行速度",
+		Range = {0, 100},
+		CurrentValue = 2,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Callback = function(Value)
+			flyspeed = Value
+		end    
+	})
+
+	Groupbox:CreateSlider({
+		Name = "上升/下降速度",
+		Range = {0, 100},
+		CurrentValue = 50,
+		Color = Color3.fromRGB(255,255,255),
+		Increment = 1,
+		Callback = function(Value)
+			ds = Value
+		end    
+	})
+	
+	table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
+		if CFrameSpeedEnabled then
+			Player.Character.HumanoidRootPart.CFrame =
+				Player.Character.HumanoidRootPart.CFrame +
+				Player.Character.Humanoid.MoveDirection * CFrameSpeed
+		end
+		
+		if fly then
+			local character = Player.Character
+			local b = character.HumanoidRootPart:FindFirstChild("FLG")
+			if up and not down then
+				b.Velocity = Vector3.new(0,ds,0)
+			elseif down and not up then
+				b.Velocity = Vector3.new(0,-ds,0)
+			else
+				b.Velocity = Vector3.new(0,0,0)
+			end
+			local cf = character.HumanoidRootPart.CFrame + character.Humanoid.MoveDirection * flyspeed
+			character.HumanoidRootPart.CFrame = cf
+		end
+		
+		if cfly then
+			if not Player.Character or not Player.Character:FindFirstChild("Head") then return end
+			local Head = Player.Character:FindFirstChild("Head")
+			Head.Anchored = true
+
+			local moveDirection = Player.Character:FindFirstChildOfClass('Humanoid').MoveDirection * (cflyspeed * dt)
+			local headCFrame = Head.CFrame
+			local camera = workspace.CurrentCamera
+			local cameraCFrame = camera.CFrame
+			local cameraOffset = headCFrame:ToObjectSpace(cameraCFrame).Position
+			cameraCFrame = cameraCFrame * CFrame.new(-cameraOffset.X, -cameraOffset.Y, -cameraOffset.Z + 1)
+			local cameraPosition = cameraCFrame.Position
+			local headPosition = headCFrame.Position
+
+			local objectSpaceVelocity = CFrame.new(cameraPosition, Vector3.new(headPosition.X, cameraPosition.Y, headPosition.Z)):VectorToObjectSpace(moveDirection)
+			Head.CFrame = CFrame.new(headPosition) * (cameraCFrame - cameraPosition) * CFrame.new(objectSpaceVelocity)
+		end
+	end))
+	
+end
 
 local MainTab = TabSection:CreateTab({
 	Name = "自瞄",
 	Columns = 1,
 })
 
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "",
-	Column = 1,
-})
+do
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "",
+		Column = 1,
+	})
 
-if not GuiMain:FindFirstChild("TDMEspFolder") then
-	EspFolder = Instance.new("ScreenGui",GuiMain)
-	EspFolder.Name = "TDMEspFolder"
-end
-
-local EspFolder = GuiMain:FindFirstChild("TDMEspFolder")
-local mainaimbot = false
-local aimbuttonscreen = Instance.new("ScreenGui",EspFolder)
-aimbuttonscreen.IgnoreGuiInset = true
-aimbuttonscreen.Enabled = false
-aimbuttonscreen.ResetOnSpawn = false
-local aimbutton = Instance.new("TextLabel",aimbuttonscreen)
-local cu = Instance.new("UICorner",aimbutton)
-cu.CornerRadius = UDim.new(1,0)
-aimbutton.Size = UDim2.new(0,100,0,100)
-aimbutton.BackgroundTransparency = .5
-aimbutton.BackgroundColor3 = Color3.new(0,0,0)
-local st = Instance.new("UIStroke",aimbutton)
-st.Thickness = 2
-st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-st.Color = Color3.new(1,1,1)
-aimbutton.Position = UDim2.fromScale(.9,.5)
-aimbutton.AnchorPoint = Vector2.new(1,1)
-aimbutton.TextColor3 = Color3.new(1,1,1)
-aimbutton.Text = "自瞄"
-local mainaimbotenabled = true
-local moveaimbutton = Instance.new("ImageButton",aimbutton)
-moveaimbutton.Size = UDim2.fromScale(.2,.2)
-moveaimbutton.AnchorPoint = Vector2.new(.5,.5)
-moveaimbutton.Position = UDim2.fromScale(1,1)
-moveaimbutton.Image = "rbxassetid://3429558445"
-moveaimbutton.BackgroundTransparency = 1
-local moveaimbuttonvalue = false
-
-table.insert(Connects,moveaimbutton.MouseButton1Down:Connect(function()
-	moveaimbuttonvalue = true
-end))
-table.insert(Connects,moveaimbutton.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-		moveaimbuttonvalue = false
+	if not GuiMain:FindFirstChild("TDMEspFolder") then
+		EspFolder = Instance.new("ScreenGui",GuiMain)
+		EspFolder.Name = "TDMEspFolder"
 	end
-end))
-Groupbox:CreateToggle({
-	Name = "开启自瞄",
-	CurrentValue = false,
-	Callback = function(Value)
-		mainaimbot = Value
-	end    
-})
-local wallcheck = false
-Groupbox:CreateToggle({
-	Name = "墙体检测",
-	CurrentValue = false,
-	Callback = function(Value)
-		wallcheck = Value
-	end    
-})
-local teamcheck = false
-Groupbox:CreateToggle({
-	Name = "团队检测",
-	CurrentValue = false,
-	Callback = function(Value)
-		teamcheck = Value
-	end    
-})
-Groupbox:CreateToggle({
-	Name = "自瞄按钮",
-	CurrentValue = false,
-	Callback = function(Value)
-		mainaimbotenabled = not Value
-		moveaimbuttonvalue = false
-		aimbuttonscreen.Enabled = Value
-	end    
-})
-local lockposition = false
-Groupbox:CreateToggle({
-	Name = "锁定自瞄按钮位置",
-	CurrentValue = false,
-	Callback = function(Value)
-		lockposition = Value
-	end    
-})
-Groupbox:CreateSlider({
-	Name = "按钮大小",
-	Range = {0, math.max(ScreenSize.X,ScreenSize.Y)},
-	CurrentValue = 200,
-	Increment = 1,
-	Suffix = "",
-	Callback = function(Value)
-		aimbutton.Size = UDim2.new(0,Value,0,Value)
-	end    
-})
-local pingpre = false
-Groupbox:CreateToggle({
-	Name = "延迟补偿",
-	CurrentValue = false,
-	Callback = function(Value)
-		pingpre = Value
-	end    
-})
-local aimdistancemain = 0
-Groupbox:CreateSlider({
-	Name = "提前量",
-	Range = {0, 10},
-	CurrentValue = 0,
-	Increment = 0.1,
-	Suffix = "",
-	Callback = function(Value)
-		aimdistancemain = Value
-	end    
-})
-local autodistanceaim = false
-Groupbox:CreateToggle({
-	Name = "根据距离调整提前量",
-	CurrentValue = false,
-	Callback = function(Value)
-		autodistanceaim = Value
-	end    
-})
-local aimcirclevalue = 100
-local AimbotCircle = Instance.new("ScreenGui",EspFolder)
-AimbotCircle.Name = "AimbotCircle"
-AimbotCircle.IgnoreGuiInset = true
-AimbotCircle.Enabled = false
-AimbotCircle.ResetOnSpawn = false
-local AimbotCircleFrame = Instance.new("Frame",AimbotCircle)
-AimbotCircleFrame.Size = UDim2.new(0,aimcirclevalue*2,0,aimcirclevalue*2)
-AimbotCircleFrame.Position = UDim2.new(0.5,0,0.5,0)
-AimbotCircleFrame.AnchorPoint = Vector2.new(0.5,0.5)
-AimbotCircleFrame.BackgroundTransparency = 1
-local AimbotCircleUIStroke = Instance.new("UIStroke",AimbotCircleFrame)
-AimbotCircleUIStroke.Thickness = 2
-AimbotCircleUIStroke.Color = Color3.fromRGB(255,0,0)
-local cu = Instance.new("UICorner",AimbotCircleFrame)
-cu.CornerRadius = UDim.new(1,0)
-Groupbox:CreateSlider({
-	Name = "自瞄半径",
-	Range = {0, ScreenSize.X > ScreenSize.Y and ScreenSize.X or ScreenSize.Y},
-	CurrentValue = aimcirclevalue,
-	Increment = 1,
-	Suffix = "",
-	Callback = function(Value)
-		aimcirclevalue = Value
-		AimbotCircleFrame.Size = UDim2.new(0,Value*2,0,Value*2)
-	end    
-})
-local aimcircle = false
-Groupbox:CreateToggle({
-	Name = "开启自瞄半径",
-	CurrentValue = false,
-	Callback = function(Value)
-		aimcircle = Value
-		AimbotCircle.Enabled = Value
-	end    
-})
+
+	local EspFolder = GuiMain:FindFirstChild("TDMEspFolder")
+	local mainaimbot = false
+	local aimbuttonscreen = Instance.new("ScreenGui",EspFolder)
+	aimbuttonscreen.IgnoreGuiInset = true
+	aimbuttonscreen.Enabled = false
+	aimbuttonscreen.ResetOnSpawn = false
+	local aimbutton = Instance.new("TextLabel",aimbuttonscreen)
+	local cu = Instance.new("UICorner",aimbutton)
+	cu.CornerRadius = UDim.new(1,0)
+	aimbutton.Size = UDim2.new(0,100,0,100)
+	aimbutton.BackgroundTransparency = .5
+	aimbutton.BackgroundColor3 = Color3.new(0,0,0)
+	local st = Instance.new("UIStroke",aimbutton)
+	st.Thickness = 2
+	st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	st.Color = Color3.new(1,1,1)
+	aimbutton.Position = UDim2.fromScale(.9,.5)
+	aimbutton.AnchorPoint = Vector2.new(1,1)
+	aimbutton.TextColor3 = Color3.new(1,1,1)
+	aimbutton.Text = "自瞄"
+	local mainaimbotenabled = true
+	local moveaimbutton = Instance.new("ImageButton",aimbutton)
+	moveaimbutton.Size = UDim2.fromScale(.2,.2)
+	moveaimbutton.AnchorPoint = Vector2.new(.5,.5)
+	moveaimbutton.Position = UDim2.fromScale(1,1)
+	moveaimbutton.Image = "rbxassetid://3429558445"
+	moveaimbutton.BackgroundTransparency = 1
+	local moveaimbuttonvalue = false
+
+	table.insert(Connects,moveaimbutton.MouseButton1Down:Connect(function()
+		moveaimbuttonvalue = true
+	end))
+	table.insert(Connects,moveaimbutton.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			moveaimbuttonvalue = false
+		end
+	end))
+	Groupbox:CreateToggle({
+		Name = "开启自瞄",
+		CurrentValue = false,
+		Callback = function(Value)
+			mainaimbot = Value
+		end    
+	})
+	local wallcheck = false
+	Groupbox:CreateToggle({
+		Name = "墙体检测",
+		CurrentValue = false,
+		Callback = function(Value)
+			wallcheck = Value
+		end    
+	})
+	local teamcheck = false
+	Groupbox:CreateToggle({
+		Name = "团队检测",
+		CurrentValue = false,
+		Callback = function(Value)
+			teamcheck = Value
+		end    
+	})
+	Groupbox:CreateToggle({
+		Name = "自瞄按钮",
+		CurrentValue = false,
+		Callback = function(Value)
+			mainaimbotenabled = not Value
+			moveaimbuttonvalue = false
+			aimbuttonscreen.Enabled = Value
+		end    
+	})
+	local lockposition = false
+	Groupbox:CreateToggle({
+		Name = "锁定自瞄按钮位置",
+		CurrentValue = false,
+		Callback = function(Value)
+			lockposition = Value
+		end    
+	})
+	Groupbox:CreateSlider({
+		Name = "按钮大小",
+		Range = {0, math.max(ScreenSize.X,ScreenSize.Y)},
+		CurrentValue = 200,
+		Increment = 1,
+		Suffix = "",
+		Callback = function(Value)
+			aimbutton.Size = UDim2.new(0,Value,0,Value)
+		end    
+	})
+	local pingpre = false
+	Groupbox:CreateToggle({
+		Name = "延迟补偿",
+		CurrentValue = false,
+		Callback = function(Value)
+			pingpre = Value
+		end    
+	})
+	local aimdistancemain = 0
+	Groupbox:CreateSlider({
+		Name = "提前量",
+		Range = {0, 10},
+		CurrentValue = 0,
+		Increment = 0.1,
+		Suffix = "",
+		Callback = function(Value)
+			aimdistancemain = Value
+		end    
+	})
+	local autodistanceaim = false
+	Groupbox:CreateToggle({
+		Name = "根据距离调整提前量",
+		CurrentValue = false,
+		Callback = function(Value)
+			autodistanceaim = Value
+		end    
+	})
+	local aimcirclevalue = 100
+	local AimbotCircle = Instance.new("ScreenGui",EspFolder)
+	AimbotCircle.Name = "AimbotCircle"
+	AimbotCircle.IgnoreGuiInset = true
+	AimbotCircle.Enabled = false
+	AimbotCircle.ResetOnSpawn = false
+	local AimbotCircleFrame = Instance.new("Frame",AimbotCircle)
+	AimbotCircleFrame.Size = UDim2.new(0,aimcirclevalue*2,0,aimcirclevalue*2)
+	AimbotCircleFrame.Position = UDim2.new(0.5,0,0.5,0)
+	AimbotCircleFrame.AnchorPoint = Vector2.new(0.5,0.5)
+	AimbotCircleFrame.BackgroundTransparency = 1
+	local AimbotCircleUIStroke = Instance.new("UIStroke",AimbotCircleFrame)
+	AimbotCircleUIStroke.Thickness = 2
+	AimbotCircleUIStroke.Color = Color3.fromRGB(255,0,0)
+	local cu = Instance.new("UICorner",AimbotCircleFrame)
+	cu.CornerRadius = UDim.new(1,0)
+	Groupbox:CreateSlider({
+		Name = "自瞄半径",
+		Range = {0, ScreenSize.X > ScreenSize.Y and ScreenSize.X or ScreenSize.Y},
+		CurrentValue = aimcirclevalue,
+		Increment = 1,
+		Suffix = "",
+		Callback = function(Value)
+			aimcirclevalue = Value
+			AimbotCircleFrame.Size = UDim2.new(0,Value*2,0,Value*2)
+		end    
+	})
+	local aimcircle = false
+	Groupbox:CreateToggle({
+		Name = "开启自瞄半径",
+		CurrentValue = false,
+		Callback = function(Value)
+			aimcircle = Value
+			AimbotCircle.Enabled = Value
+		end    
+	})
+	
+	local lockedplayer
+
+	table.insert(Connects,UserInputService.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			local mouseposition = Vector2.new(Mouse.X,Mouse.Y)
+			if (mouseposition-aimbutton.AbsolutePosition+-aimbutton.AbsoluteSize/2).Magnitude <= aimbutton.AbsoluteSize.Y/2 then
+				mainaimbotenabled = true
+			end
+		end
+	end))
+	table.insert(Connects,UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if mainaimbotenabled and aimbuttonscreen.Enabled then
+				mainaimbotenabled = false
+			end
+		end
+	end))
+	
+	table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
+		PlayerPing = Player:GetNetworkPing()
+		ScreenSize = workspace.CurrentCamera.ViewportSize
+		
+		if moveaimbuttonvalue and not lockposition then
+			aimbutton.Position = UDim2.new(0,Mouse.X,0,Mouse.Y+58)
+		end
+		
+		if mainaimbot and mainaimbotenabled then
+			local mouseposition = Vector2.new(Mouse.X,Mouse.Y+58)
+			local function isPointInCenterCircle(point)
+				point = point + Vector2.new(0,58)
+				if not aimcircle then
+					return true
+				end
+				return (point - ScreenSize/2).Magnitude <= aimcirclevalue
+			end
+			if not lockedplayer then
+				for i,v in ipairs(Players:GetPlayers()) do
+					local character = v.Character
+					if character and v ~= Player and v.Character ~= Player.Character then
+						local Camera = workspace.CurrentCamera
+						local ScreenPoint, OnScreen = Camera:WorldToScreenPoint(character:GetPivot().Position)
+						local ScreenPoint2, OnScreen2 = Camera:WorldToScreenPoint(lockedplayer and lockedplayer:GetPivot().Position or character:GetPivot().Position)
+						ScreenPoint = Vector2.new(ScreenPoint.X,ScreenPoint.Y+58)
+						ScreenPoint2 = Vector2.new(ScreenPoint2.X,ScreenPoint2.Y+58)
+						if (not lockedplayer or (lockedplayer and ((ScreenPoint - ScreenSize/2).Magnitude + (character:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude)/2 < ((ScreenPoint2 - ScreenSize/2).Magnitude)+(lockedplayer:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude)/2) and isPointInCenterCircle(ScreenPoint) and OnScreen then
+							local raycastp = RaycastParams.new()
+							raycastp.FilterType = Enum.RaycastFilterType.Exclude
+							raycastp.FilterDescendantsInstances = {character,Player.Character}
+							if wallcheck and workspace:Raycast(Player.Character:GetPivot().Position,character:GetPivot().Position - Player.Character:GetPivot().Position,raycastp) then
+								continue
+							end
+							if teamcheck and Player.Team and v.Team and v.Team == Player.Team then
+								continue
+							end
+							lockedplayer = v.Character
+						end
+					end
+				end
+			else
+				if (lockedplayer:FindFirstChild("Humanoid") and lockedplayer:FindFirstChild("Humanoid").Health <= 0) or not lockedplayer.Parent then
+
+					lockedplayer = nil
+				end
+				local targetposition = PlayerVelocityTable[Players:GetPlayerFromCharacter(lockedplayer)]*aimdistancemain
+				if autodistanceaim then
+					targetposition = PlayerVelocityTable[Players:GetPlayerFromCharacter(lockedplayer)]*(Player.Character:GetPivot().Position - lockedplayer:GetPivot().Position).Magnitude*aimdistancemain*.01
+				end
+				if pingpre then
+					targetposition = targetposition * PlayerPing
+				end
+				targetposition = targetposition + lockedplayer:GetPivot().Position
+				workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position,targetposition)
+			end
+		else
+			lockedplayer = nil
+		end
+	end))
+end
 
 local MainTab = TabSection:CreateTab({
 	Name = "透视",
 	Columns = 1,
 })
-
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "",
-	Column = 1,
-})
-local ExcludeSelf = true
-local PlayerEspFunc = function(v)
-	if v:IsA("Model") then
-		v = Players:GetPlayerFromCharacter(v)
-	end
-	if v and v == Player and ExcludeSelf then return end
-	EspLib:WrapObject({
-		Object = v.Character,
-		DisplayText = `{v.DisplayName}{(v.DisplayName == v.Name and "" or "(@"..v.Name..")")}`,
-	})
-end
-
-local NormalEspPlayer = false
 
 local function Esp(Folders,CheckFunction,EspFunction,Enable)
 	for i,v in pairs(Folders) do
@@ -1731,119 +1890,108 @@ local function Esp(Folders,CheckFunction,EspFunction,Enable)
 	end
 end
 
-local function ESPManger(Folders,CheckFunction,EspFunction,GetEnable)
-	for i,v in pairs(Folders) do
-		local a;a = v.ChildAdded:Connect(function(v)
-			if GetEnable() and CheckFunction(v) then
-				EspFunction(v)
+do
+	local Groupbox = MainTab:CreateGroupbox({
+		Name = "",
+		Column = 1,
+	})
+	local ExcludeSelf = true
+	local PlayerEspFunc = function(v)
+		if v:IsA("Model") then
+			v = Players:GetPlayerFromCharacter(v)
+		end
+		if v and v == Player and ExcludeSelf then return end
+		EspLib:WrapObject({
+			Object = v.Character,
+			DisplayText = `{v.DisplayName}{(v.DisplayName == v.Name and "" or "(@"..v.Name..")")}`,
+		})
+	end
+
+	local NormalEspPlayer = false
+
+	local function UpdateEspPlayer()
+		if NormalEspPlayer then
+			for i,v in ipairs(Players:GetPlayers()) do
+				if v.Character then
+					task.spawn(function()
+						local HumanoidRootPart = v.Character:FindFirstChild("HumanoidRootPart")
+						if not HumanoidRootPart then
+							return
+						end
+						PlayerEspFunc(v)
+					end)
+				end
 			end
-		end)
-
-		local b;b = v.Destroying:Connect(function()
-			a:Disconnect()
-			b:Disconnect()
-		end)
-	end
-end
-
-local function UpdateEspPlayer()
-	if NormalEspPlayer then
-		for i,v in ipairs(Players:GetPlayers()) do
-			if v.Character then
-				task.spawn(function()
-					local HumanoidRootPart = v.Character:FindFirstChild("HumanoidRootPart")
-					if not HumanoidRootPart then
-						return
-					end
-					PlayerEspFunc(v)
-				end)
-			end
-		end
-	else
-		for i,v in ipairs(Players:GetPlayers()) do
-			if v.Character then
-				EspLib:UnwrapObject(v.Character)
+		else
+			for i,v in ipairs(Players:GetPlayers()) do
+				if v.Character then
+					EspLib:UnwrapObject(v.Character)
+				end
 			end
 		end
 	end
-end
 
-Groupbox:CreateToggle({
-	Name = "透视玩家",
-	CurrentValue = false,
-	Callback = function(Value)
-		NormalEspPlayer = Value
-		UpdateEspPlayer()
-	end    
-})
+	Groupbox:CreateToggle({
+		Name = "透视玩家",
+		CurrentValue = false,
+		Callback = function(Value)
+			NormalEspPlayer = Value
+			UpdateEspPlayer()
+		end    
+	})
 
-Groupbox:CreateToggle({
-	Name = "排除自己",
-	CurrentValue = ExcludeSelf,
-	Callback = function(Value)
-		ExcludeSelf = Value
-		if Value then
-			EspLib:UnwrapObject(Player.Character)
-		end
-	end    
-})
+	Groupbox:CreateToggle({
+		Name = "排除自己",
+		CurrentValue = ExcludeSelf,
+		Callback = function(Value)
+			ExcludeSelf = Value
+			if Value then
+				EspLib:UnwrapObject(Player.Character)
+			end
+		end    
+	})
 
-Groupbox:CreateToggle({
-	Name = "透视射线",
-	CurrentValue = EspLib.Ray.Enabled,
-	Callback = function(Value)
-		EspLib.Ray.Enabled = Value
-	end    
-})
+	Groupbox:CreateToggle({
+		Name = "透视射线",
+		CurrentValue = EspLib.Ray.Enabled,
+		Callback = function(Value)
+			EspLib.Ray.Enabled = Value
+		end    
+	})
 
-Groupbox:CreateSlider({
-	Name = "射线粗细",
-	Range = {0, 10},
-	CurrentValue = EspLib.Ray.Thickness,
-	Increment = 0.1,
-	Suffix = "",
-	Callback = function(Value)
-		EspLib.Ray.Thickness = Value
-	end    
-})
-
-local lockedplayer
-
-table.insert(Connects,UserInputService.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		local mouseposition = Vector2.new(Mouse.X,Mouse.Y)
-		if (mouseposition-aimbutton.AbsolutePosition+-aimbutton.AbsoluteSize/2).Magnitude <= aimbutton.AbsoluteSize.Y/2 then
-			mainaimbotenabled = true
+	Groupbox:CreateSlider({
+		Name = "射线粗细",
+		Range = {0, 10},
+		CurrentValue = EspLib.Ray.Thickness,
+		Increment = 0.1,
+		Suffix = "",
+		Callback = function(Value)
+			EspLib.Ray.Thickness = Value
+		end    
+	})
+	
+	local OnCharacterAddedEsp = function(v)
+		local HRP = v:FindFirstChild("HumanoidRootPart")
+		if NormalEspPlayer then
+			PlayerEspFunc(v)
 		end
 	end
-end))
-table.insert(Connects,UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-		if mainaimbotenabled and aimbuttonscreen.Enabled then
-			mainaimbotenabled = false
+
+	local OnPlayerAddedEsp = function(v)
+		Connects[v] = v.CharacterAdded:Connect(OnCharacterAddedEsp)
+		if v.Character then
+			OnCharacterAddedEsp(v.Character)
 		end
 	end
-end))
 
-local OnCharacterAddedEsp = function(v)
-	local HRP = v:FindFirstChild("HumanoidRootPart")
-	if NormalEspPlayer then
-		PlayerEspFunc(v)
+	table.insert(Connects,Players.PlayerAdded:Connect(OnPlayerAddedEsp))
+
+	for i,v in ipairs(Players:GetPlayers()) do
+		OnPlayerAddedEsp(v)
 	end
 end
 
-local OnPlayerAddedEsp = function(v)
-	Connects[v] = v.CharacterAdded:Connect(OnCharacterAddedEsp)
-	if v.Character then
-		OnCharacterAddedEsp(v.Character)
-	end
-end
 
-table.insert(Connects,Players.PlayerAdded:Connect(OnPlayerAddedEsp))
-
-for i,v in ipairs(Players:GetPlayers()) do
-	OnPlayerAddedEsp(v)
-end
 table.insert(Connects,Players.PlayerRemoving:Connect(function(Pl)
 	if Connects[Pl] then
 		Connects[Pl]:Disconnect()
@@ -1876,122 +2024,6 @@ local function aunpack(tbl,index)
 end
 
 table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
-	if FogPart then
-		FogPart.CFrame = workspace.CurrentCamera.CFrame
-	end
-	
-	if cfly then
-		if not Player.Character or not Player.Character:FindFirstChild("Head") then return end
-		local Head = Player.Character:FindFirstChild("Head")
-		Head.Anchored = true
-
-		local moveDirection = Player.Character:FindFirstChildOfClass('Humanoid').MoveDirection * (cflyspeed * dt)
-		local headCFrame = Head.CFrame
-		local camera = workspace.CurrentCamera
-		local cameraCFrame = camera.CFrame
-		local cameraOffset = headCFrame:ToObjectSpace(cameraCFrame).Position
-		cameraCFrame = cameraCFrame * CFrame.new(-cameraOffset.X, -cameraOffset.Y, -cameraOffset.Z + 1)
-		local cameraPosition = cameraCFrame.Position
-		local headPosition = headCFrame.Position
-
-		local objectSpaceVelocity = CFrame.new(cameraPosition, Vector3.new(headPosition.X, cameraPosition.Y, headPosition.Z)):VectorToObjectSpace(moveDirection)
-		Head.CFrame = CFrame.new(headPosition) * (cameraCFrame - cameraPosition) * CFrame.new(objectSpaceVelocity)
-	end
-
-	PlayerPing = Player:GetNetworkPing()
-	ScreenSize = workspace.CurrentCamera.ViewportSize
-
-	if tptotarget and fpl and fpl.Character then
-		local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
-		if HRP then
-			local TargetHRP = fpl.Character:FindFirstChild("HumanoidRootPart")
-			if TargetHRP then
-				pcall(function()
-					sethiddenproperty(HRP, 'PhysicsRepRootPart', TargetHRP)
-
-					local finalcframe
-					local TargetCFrame = TargetHRP.CFrame
-
-					if not fixtsb then
-						finalcframe = TargetCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
-					else
-						local RealCFrame = CFrame.new(0,0,0)
-						finalcframe = RealCFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
-					end
-
-					if fixtsb then
-						if FakeCharacter then
-							FakeCharacter.HumanoidRootPart.CFrame = TargetHRP.CFrame * CFrame.new(Offset2, Offset3, Offset1) * CFrame.Angles(0, math.rad(Offset4), 0)
-							workspace.CurrentCamera.CameraSubject = FakeCharacter.Humanoid
-						else
-							local oldArchivable = Player.Character.Archivable
-							Player.Character.Archivable = true
-							FakeCharacter = Player.Character:Clone()
-							FakeCharacter.Parent = workspace
-							Player.Character.Archivable = oldArchivable
-
-							FakeCharacter.HumanoidRootPart.Anchored = true
-							FakeCharacter.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-							FakeCharacter.HumanoidRootPart.CFrame = finalcframe
-						end
-					end
-
-					HRP.CFrame = finalcframe
-				end)
-			end
-		end
-	end
-
-	if mainaimbot and mainaimbotenabled then
-		local mouseposition = Vector2.new(Mouse.X,Mouse.Y+58)
-		local function isPointInCenterCircle(point)
-			point = point + Vector2.new(0,58)
-			if not aimcircle then
-				return true
-			end
-			return (point - ScreenSize/2).Magnitude <= aimcirclevalue
-		end
-		if not lockedplayer then
-			for i,v in ipairs(Players:GetPlayers()) do
-				local character = v.Character
-				if character and v ~= Player and v.Character ~= Player.Character then
-					local Camera = workspace.CurrentCamera
-					local ScreenPoint, OnScreen = Camera:WorldToScreenPoint(character:GetPivot().Position)
-					local ScreenPoint2, OnScreen2 = Camera:WorldToScreenPoint(lockedplayer and lockedplayer:GetPivot().Position or character:GetPivot().Position)
-					ScreenPoint = Vector2.new(ScreenPoint.X,ScreenPoint.Y+58)
-					ScreenPoint2 = Vector2.new(ScreenPoint2.X,ScreenPoint2.Y+58)
-					if (not lockedplayer or (lockedplayer and ((ScreenPoint - ScreenSize/2).Magnitude + (character:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude)/2 < ((ScreenPoint2 - ScreenSize/2).Magnitude)+(lockedplayer:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude)/2) and isPointInCenterCircle(ScreenPoint) and OnScreen then
-						local raycastp = RaycastParams.new()
-						raycastp.FilterType = Enum.RaycastFilterType.Exclude
-						raycastp.FilterDescendantsInstances = {character,Player.Character}
-						if wallcheck and workspace:Raycast(Player.Character:GetPivot().Position,character:GetPivot().Position - Player.Character:GetPivot().Position,raycastp) then
-							continue
-						end
-						if teamcheck and Player.Team and v.Team and v.Team == Player.Team then
-							continue
-						end
-						lockedplayer = v.Character
-					end
-				end
-			end
-		else
-			if (lockedplayer:FindFirstChild("Humanoid") and lockedplayer:FindFirstChild("Humanoid").Health <= 0) or not lockedplayer.Parent then
-
-				lockedplayer = nil
-			end
-			local targetposition = PlayerVelocityTable[Players:GetPlayerFromCharacter(lockedplayer)]*aimdistancemain
-			if autodistanceaim then
-				targetposition = PlayerVelocityTable[Players:GetPlayerFromCharacter(lockedplayer)]*(Player.Character:GetPivot().Position - lockedplayer:GetPivot().Position).Magnitude*aimdistancemain*.01
-			end
-			if pingpre then
-				targetposition = targetposition * PlayerPing
-			end
-			targetposition = targetposition + lockedplayer:GetPivot().Position
-			workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position,targetposition)
-		end
-	else
-		lockedplayer = nil
-	end
 	for i,v in ipairs(Players:GetPlayers()) do
 		if v.Character and v.Character.Parent then
 			if not LastPositionTable[v] then
@@ -2014,30 +2046,177 @@ table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
 			LastPositionTable[v] = v.Character:GetPivot().Position
 		end
 	end
-
-	if moveaimbuttonvalue and not lockposition then
-		aimbutton.Position = UDim2.new(0,Mouse.X,0,Mouse.Y+58)
-	end
-	if CFrameSpeedEnabled then
-		Player.Character.HumanoidRootPart.CFrame =
-			Player.Character.HumanoidRootPart.CFrame +
-			Player.Character.Humanoid.MoveDirection * CFrameSpeed
-	end
-	if fly then
-		local character = Player.Character
-		local b = character.HumanoidRootPart:FindFirstChild("FLG")
-		if up and not down then
-			b.Velocity = Vector3.new(0,ds,0)
-		elseif down and not up then
-			b.Velocity = Vector3.new(0,-ds,0)
-		else
-			b.Velocity = Vector3.new(0,0,0)
-		end
-		local cf = character.HumanoidRootPart.CFrame + character.Humanoid.MoveDirection * flyspeed
-		character.HumanoidRootPart.CFrame = cf
-	end
-
 end))
+
+if workspace:FindFirstChild("GlobalPianoConnector") and Player.PlayerGui:FindFirstChild("PianoGui") and Player.PlayerGui.PianoGui:FindFirstChild("Main") then
+	local MidiToTable = GetApi("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/MidiToTable.lua")
+
+	local function MidiNoteToPianoKey(midiNote)
+		local baseMidi = 60
+		local basePiano = 31
+
+		local offset = midiNote - baseMidi
+		local rawPianoKey = basePiano + offset
+		local zeroBased = rawPianoKey - 1
+		local modResult = zeroBased % 61
+		local pianoKey = modResult + 1
+
+		return pianoKey
+	end
+	local ftab = getsenv(Player.PlayerGui.PianoGui.Main)
+	local function Press(index)
+		ftab.PlayNoteClient(index)
+	end
+
+	local function Release(index)
+		return
+	end
+
+	local TabSection = Window:CreateTabSection("自动弹琴")
+	local Tab = TabSection:CreateTab({
+		Name = "功能",
+		Columns = 1,
+	})
+	local Groupbox = Tab:CreateGroupbox({
+		Name = "",
+		Column = 1,
+	})
+
+	if not isfolder("TDM/AutoPiano") then
+		makefolder("TDM/AutoPiano")
+	end
+	local Folder = listfiles("TDM/AutoPiano")
+	for i,v in pairs(Folder) do
+		Folder[i] = string.gsub(v,"TDM/AutoPiano/","",1)
+	end
+	local midiData
+	local Disabled = {}
+	local yg
+
+	local ad = Groupbox:CreateDropdown({
+		Options = Folder,
+		Required = true,
+		MultipleOptions = false,
+		Placeholder = "None Selected",
+		Name = "选择文件",
+		Callback = function(Options)
+			midiData = MidiToTable(Options[1] and readfile("TDM/AutoPiano/"..Options[1]))
+			Disabled = {}
+			local tracks = {}
+
+			for i=1,#midiData.tracks do
+				table.insert(tracks, tostring(i))
+			end
+
+			yg:Set({Options = tracks})
+		end,
+	})
+
+	Groupbox:CreateButton({
+		Name = "刷新",
+		Callback = function()
+			local Folder = listfiles("TDM/AutoPiano")
+			for i,v in pairs(Folder) do
+				Folder[i] = string.gsub(v,"TDM/AutoPiano/","",1)
+			end
+			ad:Set({Options = Folder})
+		end,
+	})
+
+	local qy
+
+	yg = Groupbox:CreateDropdown({
+		Options = {},
+		Required = true,
+		Placeholder = "None Selected",
+		Name = "选择音轨",
+		Callback = function(Options)
+			qy:Set(Disabled[tonumber(Options[1])])
+		end,
+	})
+
+	qy = Groupbox:CreateToggle({
+		Name = "禁用",
+		CurrentValue = false,
+		Callback = function(Value)
+			for _,v in pairs(yg.CurrentOption) do
+				if tonumber(v) then
+					Disabled[tonumber(v)] = Value
+				end
+			end
+		end    
+	})
+
+	local TIME_SCALE = 1
+
+	Groupbox:CreateSlider({
+		Name = "速度倍率",
+		Range = {0.1, 5},
+		Increment = .1,
+		Suffix = "",
+		CurrentValue = 1,
+		Flag = "Slider1",
+		Callback = function(Value)
+			TIME_SCALE = 1/Value
+		end,
+	})
+
+	local st = tick()
+	Groupbox:CreateToggle({
+		Name = "开始演奏(61键)",
+		CurrentValue = false,
+		Callback = function(Value)
+			local tic = tick()
+			st = tic
+			if Value then
+				local midiData = midiData
+				local Disabled = Disabled
+				local active = {}
+				local PPQ = midiData.header and midiData.header.ppq or 480
+				local bpm
+				for _,v in pairs(midiData.tracks) do
+					for i,v in pairs(v.events) do
+						if v.bpm then
+							bpm = v.bpm
+							break
+						end
+					end
+				end
+
+				local TICK_TO_SEC = (60 / bpm or 180) / PPQ
+
+				local globalClock = os.clock()
+
+				for trakeindex, track in ipairs(midiData.tracks) do
+					if Disabled[trakeindex] then continue end
+					task.spawn(function()
+						local trackBaseTime = 0 
+						for _, e in ipairs(track.events) do
+							if tic ~= st then return end
+							trackBaseTime = trackBaseTime + e.deltaTime * TIME_SCALE * TICK_TO_SEC
+							local waitTime = trackBaseTime - (os.clock() - globalClock)
+							if waitTime > 0 then
+								task.wait(waitTime)
+							end
+							if tic ~= st then return end
+							if e.name == "NOTE_ON" and e.velocity > 0 then
+								local pianoKey = MidiNoteToPianoKey(e.note)
+								Press(pianoKey)
+							end
+
+							if e.name == "NOTE_OFF" or (e.name == "NOTE_ON" and e.velocity == 0) then
+								local pianoKey = MidiNoteToPianoKey(e.note)
+								Release(pianoKey)
+							end
+						end
+					end)
+				end
+			end
+		end    
+	})
+end
+
+
 
 if MatchPlaceId(6520999642) then
 	local BotPlay = false
@@ -2744,6 +2923,13 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	local function stripVariant(name: string): string
 		return string.gsub(name, "_[^_]*$", "")
 	end
+
+	--[[for i,v in workspace.World.TreeRegions:GetChildren() do
+		table.insert(StringOptions.Trees,v.Name)
+	end
+	for i,v in workspace.World.RockRegions:GetChildren() do
+		table.insert(StringOptions.Ores,v.Name)
+	end]]
 
 	Tab:CreateDropdown({
 		Name = "过滤",
