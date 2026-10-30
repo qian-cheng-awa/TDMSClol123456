@@ -925,13 +925,15 @@ local Groupbox = MainTab:CreateGroupbox({
 	Column = 1,
 })
 
+local Volumertric2 = GetApi("https://raw.githubusercontent.com/qian-cheng-awa/TDMSClol123456/refs/heads/main/Fog.luau")
+
 local VolumetricFog = {
 	Enabled = false,
 	Amount = 50,
 	Color = Color3.fromRGB(200,200,200),
 	Overscan = 1.15,
 	Spread = 0.5,
-	Transparency = 0.996,
+	Transparency = 0.989,
 	BaseDistance = 4,
 }
 
@@ -1056,31 +1058,64 @@ local function rebuildFog()
 		beams[i] = nil
 	end
 end
+local RenderMethods = {
+	"光束(性能好，仅太阳光有效)",
+	"MeshPart(所有光都有效，cpu破坏者)"
+}
 
+local CurrentRenderMethod = 1
+
+Groupbox:CreateDropdown({
+	Options = RenderMethods,
+	Required = true,
+	MultipleOptions = false,
+	Placeholder = "None Selected",
+	CurrentOption = {RenderMethods[CurrentRenderMethod]},
+	Name = "实现方式",
+	Callback = function(Options)
+		local val = Options[1]
+		
+		CurrentRenderMethod = table.find(RenderMethods, val)
+	end,
+})
 Groupbox:CreateToggle({
 	Name = "启用(更改设置请重新开启)",
 	CurrentValue = VolumetricFog.Enabled,
 	Callback = function(Value)
 		VolumetricFog.Enabled = Value
 		if Value then
-			FogPart = Instance.new("Part")
-			FogPart.Name = "FogPart"
-			FogPart.Anchored = true
-			FogPart.CanCollide = false
-			FogPart.Transparency = 1
-			FogPart.Parent = workspace.CurrentCamera
-			
-			updateSequences()
-			
-			rebuildFog()
-		else
-			if FogPart then
-				FogPart:Destroy()
+			if CurrentRenderMethod == 1 then
+				FogPart = Instance.new("Part")
+				FogPart.Name = "FogPart"
+				FogPart.Anchored = true
+				FogPart.CanCollide = false
+				FogPart.Transparency = 1
+				FogPart.Parent = workspace.CurrentCamera
+
+				updateSequences()
+
+				rebuildFog()
+			else
+				Volumertric2.Enable(true)
+
+				Volumertric2.SetSettings({
+					planeSpacing = VolumetricFog.Spread,
+					planeCount = VolumetricFog.Amount,
+					transparency = VolumetricFog.Transparency,
+				})
 			end
-			
-			for i,v in beams do
-				v:Destroy()
-				beams[i] = nil
+		else
+			if CurrentRenderMethod == 1 then
+				if FogPart then
+					FogPart:Destroy()
+				end
+
+				for i,v in beams do
+					v:Destroy()
+					beams[i] = nil
+				end
+			else
+				Volumertric2.Enable(false)
 			end
 		end
 	end
