@@ -775,12 +775,6 @@ local teleportvaluestable;teleportvaluestable = {
 		local cursor, pages = "", 0
 		local image = teleportvaluestable.getAvatar(userId)
 		if not image then
-			Rayfield:Notify({
-				Title = "TDM",
-				Content = "获取玩家信息错误",
-				Duration = 6.5,
-				Image = "rewind",
-			})
 			return
 		end
 		while true do
@@ -793,33 +787,15 @@ local teleportvaluestable;teleportvaluestable = {
 				return a
 			end)
 			if not success or not response then
-				Rayfield:Notify({
-					Title = "TDM",
-					Content = "访问服务器列表出错！"..pages,
-					Duration = 6.5,
-					Image = "rewind",
-				})
 				break
 			end
 
 			local ok, data = pcall(function() return HttpService:JSONDecode(response) end)
 
 			if not ok or not data then
-				Rayfield:Notify({
-					Title = "TDM",
-					Content = "服务器数据错误！"..pages,
-					Duration = 6.5,
-					Image = "rewind",
-				})
 				break
 			end
 			if data.errors and data.errors[1] and data.errors[1].message and data.errors[1].message == "Too many requests" then
-				Rayfield:Notify({
-					Title = "TDM",
-					Content = "请求达到上限！(可能是加速器问题)",
-					Duration = 6.5,
-					Image = "rewind",
-				})
 				break
 			end
 			for _, server in ipairs(data.data) do
@@ -834,21 +810,8 @@ local teleportvaluestable;teleportvaluestable = {
 			print(pages)
 			local pid, sid = teleportvaluestable.runBatches(tokens, image)
 			if pid and sid then
-				Rayfield:Notify({
-					Title = "TDM",
-					Content = "服务器找到！正在传送",
-					Duration = 6.5,
-					Image = "rewind",
-				})
 				TeleportService:TeleportToPlaceInstance(pid, sid)
 				return
-			else
-				Rayfield:Notify({
-					Title = "TDM",
-					Content = "列表"..pages.." 未找到玩家",
-					Duration = 6.5,
-					Image = "rewind",
-				})
 			end
 			if not data.nextPageCursor or pages >= maxPages then break end
 			cursor = data.nextPageCursor
@@ -862,12 +825,6 @@ local teleportvaluestable;teleportvaluestable = {
 				return Players:GetUserIdFromNameAsync(target)
 			end)
 			if not ok then
-				Rayfield:Notify({
-					Title = "TDM",
-					Content = "用户名错误/用户不存在",
-					Duration = 6.5,
-					Image = "rewind",
-				})
 				return
 			end
 			userId = uid
@@ -897,132 +854,6 @@ Groupbox:CreateButton({
 	end,
 })
 
-local Groupbox = MainTab:CreateGroupbox({
-	Name = "建筑保存",
-	Column = 1,
-})
-
-local Path
-Groupbox:CreateInput({
-	Name = "输入路径(留空默认保存全部可见模型)",
-	CurrentValue = "",
-	PlaceholderText = "输入文字",
-	RemoveTextAfterFocusLost = false,
-	Callback = function(Text)
-		Path = Text
-	end,
-})
-local FileName
-Groupbox:CreateInput({
-	Name = "输入文件名",
-	CurrentValue = "",
-	PlaceholderText = "输入文字",
-	RemoveTextAfterFocusLost = false,
-	Callback = function(Text)
-		FileName = Text
-	end,
-})
-local saveplayermodel = false
-Groupbox:CreateToggle({
-	Name = "保存玩家模型",
-	CurrentValue = false,
-	Callback = function(Value)
-		saveplayermodel = Value
-	end    
-})
-local function isplayerpart(part)
-	for i,v in ipairs(Players:GetPlayers()) do
-		if part:IsDescendantOf(v.Character) then
-			return true
-		end
-	end
-	return false
-end
-Groupbox:CreateButton({
-	Name = "保存为文件",
-	Callback = function()
-		if not Path or Path == "" then
-			Path = "workspace"
-		end
-		if FileName and FileName ~= "" and Path and Path ~= "" then
-			local File = {}
-
-			local Instance = loadstring("return "..Path)()
-			if Instance then
-				for i,v in ipairs(Instance:GetDescendants()) do
-					if v:IsA("BasePart") and (not saveplayermodel and not isplayerpart(v) or saveplayermodel and isplayerpart(v)) then
-						local tb = {Color = tostring(v.Color),Class = "Part",CFrame = tostring(v.CFrame),Properties = { Anchored = v.Anchored, Collision = v.CanCollide, Shadow = v.CastShadow},Material = v.Material.Name,Size = tostring(v.Size),Else = {},elsea = {}}
-						if v:IsA("Part") then
-							tb.Shape = v.Shape.Name
-						end
-
-						if v:IsA("MeshPart") then
-							tb.Else.MeshID = string.gsub(v.MeshId, "%D", "")
-							if v.TextureID and v.TextureID ~= "" then
-								tb.Else.MeshTextureID = string.gsub(v.TextureID, "%D", "")
-							end
-							tb.elsea.MeshSize = tostring(v.MeshSize)
-						elseif v:FindFirstChildOfClass("SpecialMesh") then
-							local mesh = v:FindFirstChildOfClass("SpecialMesh")
-							if mesh.MeshType == Enum.MeshType.Head then
-								tb.Else.MeshID = "5591363797"
-								tb.elsea.MeshScale = "1,1,1"
-							else
-								tb.Else.MeshID = string.gsub(mesh.MeshId, "%D", "")
-								tb.elsea.MeshScale = tostring(mesh.Scale)
-							end
-
-							if mesh.TextureId and mesh.TextureId ~= "" then
-								tb.Else.MeshTextureID = string.gsub(mesh.TextureId, "%D", "")
-							end
-						end
-
-						if v:FindFirstChildOfClass("SurfaceAppearance") and tb.Else.MeshID then
-							tb.Else.MeshTextureID = string.gsub(v:FindFirstChildOfClass("SurfaceAppearance").ColorMap, "%D", "")
-						end
-
-						tb.Light = {}
-						tb.SFLight = {}
-						if v:FindFirstChildOfClass("PointLight") and v:FindFirstChildOfClass("PointLight").Enabled then
-							local light = v:FindFirstChildOfClass("PointLight")
-							table.insert(tb.Light,{Range = light.Range,Brightness = light.Brightness,Color = tostring(light.Color),Shadows = light.Shadows})
-						end
-						if (v:FindFirstChildOfClass("SurfaceLight") and v:FindFirstChildOfClass("SurfaceLight").Enabled) or (v:FindFirstChildOfClass("SpotLight") and v:FindFirstChildOfClass("SpotLight").Enabled) then
-							local light = v:FindFirstChildOfClass("SurfaceLight") or v:FindFirstChildOfClass("SpotLight")
-							table.insert(tb.SFLight,{Angle = light.Angle,Brightness = light.Brightness,Color = tostring(light.Color),Shadows = light.Shadows,Face = light.Face.Name})
-						end
-						tb.Texture = {}
-						tb.Decal = {}
-						if v:FindFirstChildOfClass("Attachment") or v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture") then
-							for i,att in ipairs(v:GetChildren()) do
-								if att:IsA("Attachment") then
-									if att:FindFirstChildOfClass("PointLight") and att:FindFirstChildOfClass("PointLight").Enabled then
-										local light = att:FindFirstChildOfClass("PointLight")
-										table.insert(tb.Light,{Range = light.Range,Brightness = light.Brightness,Color = tostring(light.Color),Shadows = light.Shadows,Offset = tostring(att.CFrame)})
-									end
-									if (att:FindFirstChildOfClass("SurfaceLight") and att:FindFirstChildOfClass("SurfaceLight").Enabled) or (att:FindFirstChildOfClass("SpotLight") and att:FindFirstChildOfClass("SpotLight").Enabled) then
-										local light = att:FindFirstChildOfClass("SurfaceLight") or att:FindFirstChildOfClass("SpotLight")
-										table.insert(tb.SFLight,{Angle = light.Angle,Brightness = light.Brightness,Color = tostring(light.Color),Shadows = light.Shadows,Face = light.Face.Name,Offset = tostring(att.CFrame)})
-									end
-								elseif att:IsA("Texture") then
-									tb.Texture[att.Face.Name] = {Texture = string.gsub(att.Texture,"%D",""),Transparency = att.Transparency,Color = tostring(att.Color3),OffsetU = att.OffsetStudsU,OffsetV = att.OffsetStudsV,StudsU = att.StudsPerTileU,StudsV = att.StudsPerTileV}
-								elseif att:IsA("Decal") then
-									tb.Decal[att.Face.Name] = {Texture = string.gsub(att.Texture,"%D",""),Transparency = att.Transparency,Color = tostring(att.Color3)}
-								end
-							end
-						end
-
-						tb.Else.Transparency = v.Transparency
-						table.insert(File,tb)
-					end
-				end
-			end
-			if File and #File > 0 then
-				writefile([[TDM/TSBAutoBuilder/]]..FileName..".build",HttpService:JSONEncode(File))
-			end
-		end
-	end,
-})
 local Groupbox = MainTab:CreateGroupbox({
 	Name = "工具",
 	Column = 1,
@@ -1093,20 +924,23 @@ local Groupbox = MainTab:CreateGroupbox({
 	Name = "体积光渲染",
 	Column = 1,
 })
-local VolumetricEnabled = false
-local VolumetricAmount = 50
-local VolumetricColor = Color3.fromRGB(200,200,200)
-local VolumetricOverscan = 1.15
-local VolumetricSpread = 0.5
-local VolumetricTransparency = 0.996
-local FOG_BASE_DISTANCE = 4
 
-local cachedTransparency = NumberSequence.new(VolumetricTransparency)
-local cachedColor = ColorSequence.new(VolumetricColor)
+local VolumetricFog = {
+	Enabled = false,
+	Amount = 50,
+	Color = Color3.fromRGB(200,200,200),
+	Overscan = 1.15,
+	Spread = 0.5,
+	Transparency = 0.996,
+	BaseDistance = 4,
+}
+
+local cachedTransparency = NumberSequence.new(VolumetricFog.Transparency)
+local cachedColor = ColorSequence.new(VolumetricFog.Color)
 
 local function updateSequences()
-	cachedTransparency = NumberSequence.new(VolumetricTransparency)
-	cachedColor = ColorSequence.new(VolumetricColor)
+	cachedTransparency = NumberSequence.new(VolumetricFog.Transparency)
+	cachedColor = ColorSequence.new(VolumetricFog.Color)
 end
 
 local lastViewport = Vector2.zero
@@ -1127,7 +961,7 @@ local function updateFogPartSize()
 	lastFOV = fov
 
 	local height =
-		2 * math.tan(math.rad(fov / 2)) * FOG_BASE_DISTANCE
+		2 * math.tan(math.rad(fov / 2)) * VolumetricFog.BaseDistance
 
 	local width =
 		height * (viewport.X / viewport.Y)
@@ -1141,13 +975,13 @@ local function getBeamDimensions(distance)
 	local fov = Camera.FieldOfView
 
 	local baseHeight =
-		2 * math.tan(math.rad(fov / 2)) * FOG_BASE_DISTANCE
+		2 * math.tan(math.rad(fov / 2)) * VolumetricFog.BaseDistance
 
 	local baseWidth =
 		baseHeight * (viewport.X / viewport.Y)
 
 	local scale =
-		(distance / FOG_BASE_DISTANCE) * VolumetricOverscan
+		(distance / VolumetricFog.BaseDistance) * VolumetricFog.Overscan
 
 	return (baseWidth * 2) * scale, baseHeight * scale
 end
@@ -1157,7 +991,7 @@ local beams = {}
 local function rebuildFog()
 	updateFogPartSize()
 
-	for i = 1, VolumetricAmount do
+	for i = 1, VolumetricFog.Amount do
 		local beam = beams[i]
 
 		if not beam then
@@ -1184,7 +1018,7 @@ local function rebuildFog()
 		end
 
 		local zOffset =
-			-FOG_BASE_DISTANCE - ((i - 1) * VolumetricSpread)
+			-VolumetricFog.BaseDistance - ((i - 1) * VolumetricFog.Spread)
 
 		local distance = math.abs(zOffset)
 
@@ -1212,7 +1046,7 @@ local function rebuildFog()
 		beam.Color = cachedColor
 	end
 
-	for i = VolumetricAmount + 1, #beams do
+	for i = VolumetricFog.Amount + 1, #beams do
 		local beam = beams[i]
 
 		beam.Attachment0:Destroy()
@@ -1225,9 +1059,9 @@ end
 
 Groupbox:CreateToggle({
 	Name = "启用(更改设置请重新开启)",
-	CurrentValue = VolumetricEnabled,
+	CurrentValue = VolumetricFog.Enabled,
 	Callback = function(Value)
-		VolumetricEnabled = Value
+		VolumetricFog.Enabled = Value
 		if Value then
 			FogPart = Instance.new("Part")
 			FogPart.Name = "FogPart"
@@ -1255,68 +1089,68 @@ Groupbox:CreateToggle({
 Groupbox:CreateSlider({
 	Name = "数量",
 	Range = {0, 100},
-	CurrentValue = VolumetricAmount,
+	CurrentValue = VolumetricFog.Amount,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = 1,
 	Suffix = "",
 	Callback = function(Value)
-		VolumetricAmount = Value
+		VolumetricFog.Amount = Value
 	end    
 })
 
 Groupbox:CreateColorPicker({
 	Name = "颜色",
-	CurrentValue = VolumetricColor,
+	CurrentValue = VolumetricFog.Color,
 	Callback = function(Value)
-		VolumetricColor = Value
+		VolumetricFog.Color = Value
 	end,
 })
 
 Groupbox:CreateSlider({
 	Name = "过扫描系数",
 	Range = {0, 10},
-	CurrentValue = VolumetricOverscan,
+	CurrentValue = VolumetricFog.Overscan,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = 0.01,
 	Suffix = "",
 	Callback = function(Value)
-		VolumetricOverscan = Value
+		VolumetricFog.Overscan = Value
 	end    
 })
 
 Groupbox:CreateSlider({
 	Name = "渲染间隔",
 	Range = {0, 5},
-	CurrentValue = VolumetricSpread,
+	CurrentValue = VolumetricFog.Spread,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = 0.01,
 	Suffix = "",
 	Callback = function(Value)
-		VolumetricSpread = Value
+		VolumetricFog.Spread = Value
 	end    
 })
 
 Groupbox:CreateSlider({
 	Name = "透明度",
 	Range = {0, 1},
-	CurrentValue = VolumetricTransparency,
+	CurrentValue = VolumetricFog.Transparency,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = 0.001,
 	Suffix = "",
 	Callback = function(Value)
-		VolumetricTransparency = Value
+		VolumetricFog.Transparency = Value
 	end
 })
 
 Groupbox:CreateSlider({
 	Name = "基础距离",
 	Range = {0, 10},
-	CurrentValue = FOG_BASE_DISTANCE,
+	CurrentValue = VolumetricFog.BaseDistance,
 	Color = Color3.fromRGB(255,255,255),
 	Increment = 0.1,
 	Suffix = "",
 	Callback = function(Value)
-		FOG_BASE_DISTANCE = Value
+		VolumetricFog.BaseDistance = Value
 	end
 })
 
