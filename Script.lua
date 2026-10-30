@@ -552,36 +552,6 @@ local mobilefly = function(speaker, vfly)
 	end)
 end
 
-local function Save(data,name,folder)
-	local fullPath
-	if folder then
-		fullPath = [[TDM/]]..folder.."/"..tostring(name)..".json"
-	else
-		fullPath = [[TDM/]]..string.gsub(name," ","")..".json"
-	end
-	local success, encoded = pcall(HttpService.JSONEncode, HttpService, data)
-	if not success then
-		return false
-	end
-	print(encoded)
-	writefile(fullPath, encoded)
-	return true
-end
-
-function Load(name,folder)
-	local file
-	if folder then
-		file = [[TDM/]]..folder.."/"..tostring(name)..".json"
-	else
-		file = [[TDM/]]..string.gsub(name," ","")..".json"
-	end
-	if not isfile(file) then return false end
-
-	local success, decoded = pcall(HttpService.JSONDecode, HttpService, readfile(file))
-	if not success then return false end
-	return decoded
-end
-
 local EspLib = loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/EspLib.luau"))()
 
 Starlight = loadstring(GetUrl("https://raw.githubusercontent.com/qian-cheng-awa/Tools/refs/heads/main/Starlight.luau"))()
