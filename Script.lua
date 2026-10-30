@@ -1269,8 +1269,15 @@ Groupbox:CreateToggle({
 			updateSequences()
 			
 			rebuildFog()
-		elseif FogPart then
-			FogPart:Destroy()
+		else
+			if FogPart then
+				FogPart:Destroy()
+			end
+			
+			for i,v in beams do
+				v:Destroy()
+				beams[i] = nil
+			end
 		end
 	end
 })
