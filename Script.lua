@@ -32,15 +32,15 @@ if not hookeddetect then
 		return filtered
 	end)
 
-	local bold;bold = hookmetamethod(game,"__index",function(self,key)
+	local bold;bold = hookmetamethod(game,"__index",newcclosure(function(self,key)
 		if checkcaller() then return bold(self,key) end
 		if self == game and (key == "VirtualInputManager" or key == "VirtualUser") then
 			error(`{key} is not a valid member of DataModel "{game.Name}"`)
 		end
 		return bold(self,key)
-	end)
+	end))
 
-	local bold1;bold1 = hookmetamethod(game,"__namecall",function(self,...)
+	local bold1;bold1 = hookmetamethod(game,"__namecall",newcclosure(function(self,...)
 		if checkcaller() then return bold1(self,...) end
 		local method = getnamecallmethod()
 		if string.lower(method) == "findservice" and self == game and ((...) == "VirtualInputManager" or (...) == "VirtualUser") then
@@ -80,7 +80,7 @@ if not hookeddetect then
 		end
 
 		return bold1(self,...)
-	end)
+	end))
 
 	if RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChild("CON") and RF:FindFirstChild("Client") then
 		local sc = require(RF.Client)
