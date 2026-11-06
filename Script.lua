@@ -664,8 +664,8 @@ do
 		end    
 	})
 
-	local oldsetmetatable
-	oldsetmetatable = hookmetamethod(game,"__newindex",newcclosure(function(self,key,value)
+	local oldcamerahook
+	oldcamerahook = hookmetamethod(game,"__newindex",newcclosure(function(self,key,value,...)
 		if 
 			(tptotarget and fixtsb) and 
 			(self and key and value) and
@@ -674,7 +674,7 @@ do
 			return
 		end
 
-		return oldsetmetatable(self,key,value)
+		return oldcamerahook(self,key,value,...)
 	end))
 
 	local Offset1,Offset2,Offset3,Offset4 = 5,0,0,0
@@ -914,7 +914,7 @@ do
 			Values.AntiAfkKick = Value
 		end,
 	})
-	
+
 	table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
 		if tptotarget and fpl and fpl.Character then
 			local HRP = Player.Character:FindFirstChild("HumanoidRootPart")
@@ -1234,7 +1234,7 @@ do
 			VolumetricFog.BaseDistance = Value
 		end
 	})
-	
+
 	table.insert(Connects,RunService.RenderStepped:Connect(function()
 		if FogPart then
 			FogPart.CFrame = workspace.CurrentCamera.CFrame
@@ -1582,14 +1582,14 @@ do
 			ds = Value
 		end    
 	})
-	
+
 	table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
 		if CFrameSpeedEnabled then
 			Player.Character.HumanoidRootPart.CFrame =
 				Player.Character.HumanoidRootPart.CFrame +
 				Player.Character.Humanoid.MoveDirection * CFrameSpeed
 		end
-		
+
 		if fly then
 			local character = Player.Character
 			local b = character.HumanoidRootPart:FindFirstChild("FLG")
@@ -1603,7 +1603,7 @@ do
 			local cf = character.HumanoidRootPart.CFrame + character.Humanoid.MoveDirection * flyspeed
 			character.HumanoidRootPart.CFrame = cf
 		end
-		
+
 		if cfly then
 			if not Player.Character or not Player.Character:FindFirstChild("Head") then return end
 			local Head = Player.Character:FindFirstChild("Head")
@@ -1622,7 +1622,7 @@ do
 			Head.CFrame = CFrame.new(headPosition) * (cameraCFrame - cameraPosition) * CFrame.new(objectSpaceVelocity)
 		end
 	end))
-	
+
 end
 
 local MainTab = TabSection:CreateTab({
@@ -1791,7 +1791,7 @@ do
 			AimbotCircle.Enabled = Value
 		end    
 	})
-	
+
 	local lockedplayer
 
 	table.insert(Connects,UserInputService.InputBegan:Connect(function(input)
@@ -1809,15 +1809,15 @@ do
 			end
 		end
 	end))
-	
+
 	table.insert(Connects,RunService.Heartbeat:Connect(function(dt)
 		PlayerPing = Player:GetNetworkPing()
 		ScreenSize = workspace.CurrentCamera.ViewportSize
-		
+
 		if moveaimbuttonvalue and not lockposition then
 			aimbutton.Position = UDim2.new(0,Mouse.X,0,Mouse.Y+58)
 		end
-		
+
 		if mainaimbot and mainaimbotenabled then
 			local mouseposition = Vector2.new(Mouse.X,Mouse.Y+58)
 			local function isPointInCenterCircle(point)
@@ -1969,7 +1969,7 @@ do
 			EspLib.Ray.Thickness = Value
 		end    
 	})
-	
+
 	local OnCharacterAddedEsp = function(v)
 		local HRP = v:FindFirstChild("HumanoidRootPart")
 		if NormalEspPlayer then
@@ -2640,7 +2640,7 @@ elseif RS:FindFirstChild("HAX") and RS:FindFirstChild("REM") and RS:FindFirstChi
 	end
 
 	requestCategory("Trees","Rocks","Ores","Creatures")
-	
+
 	task.spawn(function()
 		while TDMRunId and task.wait(1) do
 			requestCategory("Trees","Rocks","Ores","Creatures")
